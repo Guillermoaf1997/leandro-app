@@ -1,5 +1,6 @@
 // CONFIGURACIÓN GLOBAL
-const API_URL = "https://script.google.com/macros/s/AKfycbwfeq_wGQhlP1P8OeiHwHNcRiHYdIXB4nHdxUUvcJwR8UTYNrRJZGJ9giiyt7cuJnN2/exec";
+// Asegúrate de que la URL termine en /exec y conserve las comillas dobles
+const API_URL = "REEMPLAZAR_CON_TU_SCRIPT_URL_DESPLEGADO";
 
 // Estado de la aplicación
 let appState = {
@@ -12,33 +13,29 @@ let appState = {
   growth: []
 };
 
-// Instancias globales de gráficos para destrucción/redibujado limpio
 let chartSleepInst = null;
 let chartFeedInst = null;
 let chartDiaperInst = null;
 
-// Inicialización
+// Inicialización segura
 document.addEventListener("DOMContentLoaded", () => {
-  initTabs();
-  initSleepTracker();
-  initTeethMap();
-  initModal();
-  initGrowthForm();
-  loadData();
+  try { initTabs(); } catch(e) { console.error("Error en initTabs:", e); }
+  try { initSleepTracker(); } catch(e) { console.error("Error en initSleepTracker:", e); }
+  try { initTeethMap(); } catch(e) { console.error("Error en initTeethMap:", e); }
+  try { initModal(); } catch(e) { console.error("Error en initModal:", e); }
+  try { initGrowthForm(); } catch(e) { console.error("Error en initGrowthForm:", e); }
+  try { loadData(); } catch(e) { console.error("Error en loadData:", e); }
   
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').catch(err => console.log('SW registration failed:', err));
+    navigator.serviceWorker.register('sw.js').catch(err => console.log('SW offline ready'));
   }
 });
 
-// Auto-sincronización en tiempo real al reenfocar la pantalla y polling periódico
+// Sincronización en tiempo real
 document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "visible") {
-    loadData();
-  }
+  if (document.visibilityState === "visible") loadData();
 });
-
-setInterval(loadData, 60000); // Recarga automática cada 60 segundos
+setInterval(loadData, 60000);
 
 // Navegación por pestañas
 function initTabs() {
@@ -48,7 +45,8 @@ function initTabs() {
       document.querySelectorAll(".tab-btn").forEach(t => t.classList.remove("active"));
       document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
       tab.classList.add("active");
-      document.getElementById(tab.dataset.tab).classList.add("active");
+      const target = document.getElementById(tab.dataset.tab);
+      if(target) target.classList.add("active");
       if(tab.dataset.tab === 'tab-stats') renderCharts();
     });
   });
@@ -57,13 +55,18 @@ function initTabs() {
 // Lógica de Sueño y Wake Windows
 function initSleepTracker() {
   const sleepBtn = document.getElementById("btn-toggle-sleep");
+  if(!sleepBtn) return;
   
-  const savedState = localStorage.getItem("leandro_sleep_state");
-  if(savedState) {
-    const data = JSON.parse(savedState);
-    appState.isSleeping = data.isSleeping;
-    appState.sleepStartTime = data.sleepStartTime ? new Date(data.sleepStartTime) : null;
-    appState.lastSleepEndTime = data.lastSleepEndTime ? new Date(data.lastSleepEndTime) : new Date();
+  try {
+    const savedState = localStorage.getItem("leandro_sleep_state");
+    if(savedState) {
+      const data = JSON.parse(savedState);
+      appState.isSleeping = !!data.isSleeping;
+      appState.sleepStartTime = data.sleepStartTime ? new Date(data.sleepStartTime) : null;
+      appState.lastSleepEndTime = data.lastSleepEndTime ? new Date(data.lastSleepEndTime) : new Date();
+    }
+  } catch(e) {
+    console.warn("Error leyendo estado de sueño local", e);
   }
 
   updateSleepUI();
@@ -76,13 +79,14 @@ function initSleepTracker() {
     if(appState.isSleeping) {
       appState.sleepStartTime = now;
     } else {
-      const durationMin = Math.round((now - appState.sleepStartTime) / 60000);
+      const start = appState.sleepStartTime || now;
+      const durationMin = Math.max(1, Math.round((now - start) / 60000));
       saveRecord({
         categoria: "sleep",
         subtipo: "Siesta/Sueño",
         valor: durationMin,
         unidad: "min",
-        fechaInicio: appState.sleepStartTime.toISOString(),
+        fechaInicio: start.toISOString(),
         fechaFin: now.toISOString()
       });
       appState.lastSleepEndTime = now;
@@ -95,16 +99,19 @@ function initSleepTracker() {
 }
 
 function saveSleepState() {
-  localStorage.setItem("leandro_sleep_state", JSON.stringify({
-    isSleeping: appState.isSleeping,
-    sleepStartTime: appState.sleepStartTime,
-    lastSleepEndTime: appState.lastSleepEndTime
-  }));
+  try {
+    localStorage.setItem("leandro_sleep_state", JSON.stringify({
+      isSleeping: appState.isSleeping,
+      sleepStartTime: appState.sleepStartTime,
+      lastSleepEndTime: appState.lastSleepEndTime
+    }));
+  } catch(e) {}
 }
 
 function updateSleepUI() {
   const btn = document.getElementById("btn-toggle-sleep");
   const btnText = document.getElementById("sleep-btn-text");
+  if(!btn || !btnText) return;
   
   if(appState.isSleeping) {
     btn.className = "btn btn-sleep-stop";
@@ -117,7 +124,8 @@ function updateSleepUI() {
     btnText.textContent = "Iniciar Sueño";
     clearInterval(appState.timerInterval);
     appState.timerInterval = null;
-    document.getElementById("sleep-timer").textContent = "00:00:00";
+    const timerElem = document.getElementById("sleep-timer");
+    if(timerElem) timerElem.textContent = "00:00:00";
   }
 }
 
@@ -127,20 +135,23 @@ function updateSleepTimerDisplay() {
   const hrs = String(Math.floor(diffSec / 3600)).padStart(2, '0');
   const mins = String(Math.floor((diffSec % 3600) / 60)).padStart(2, '0');
   const secs = String(diffSec % 60).padStart(2, '0');
-  document.getElementById("sleep-timer").textContent = `${hrs}:${mins}:${secs}`;
+  const timerElem = document.getElementById("sleep-timer");
+  if(timerElem) timerElem.textContent = `${hrs}:${mins}:${secs}`;
 }
 
 function startWakeWindowTimer() {
   setInterval(() => {
+    const badge = document.getElementById("wake-window-badge");
+    if(!badge) return;
+    
     if(appState.isSleeping) {
-      document.getElementById("wake-window-badge").textContent = "Durmiendo...";
+      badge.textContent = "Durmiendo...";
       return;
     }
     const diffMins = Math.floor((new Date() - new Date(appState.lastSleepEndTime)) / 60000);
     const hrs = Math.floor(diffMins / 60);
     const mins = diffMins % 60;
     
-    const badge = document.getElementById("wake-window-badge");
     badge.textContent = `Despierto: ${hrs}h ${mins}m`;
 
     if(diffMins < 120) {
@@ -158,6 +169,7 @@ function initModal() {
   const modal = document.getElementById("action-modal");
   const closeBtn = document.querySelector(".modal-close");
   const form = document.getElementById("modal-form");
+  if(!modal || !form) return;
 
   document.querySelectorAll(".action-btn").forEach(btn => {
     btn.addEventListener("click", () => {
@@ -167,7 +179,11 @@ function initModal() {
     });
   });
 
-  closeBtn.onclick = () => modal.classList.remove("active");
+  if(closeBtn) closeBtn.onclick = () => modal.classList.remove("active");
+  
+  window.onclick = (e) => {
+    if (e.target === modal) modal.classList.remove("active");
+  };
 
   form.onsubmit = (e) => {
     e.preventDefault();
@@ -247,10 +263,13 @@ function getCategoryGroup(type) {
   return 'activity';
 }
 
-// Persistencia en localStorage y backend con sincronización segura
+// Persistencia local y remota
 function saveRecord(recordData) {
   appState.logs.push(recordData);
-  localStorage.setItem("leandro_logs", JSON.stringify(appState.logs));
+  try {
+    localStorage.setItem("leandro_logs", JSON.stringify(appState.logs));
+  } catch(e) {}
+  
   renderTimeline();
 
   if(!API_URL || API_URL.includes("REEMPLAZAR")) return;
@@ -260,28 +279,30 @@ function saveRecord(recordData) {
     mode: "no-cors",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ action: "addRecord", data: recordData })
-  }).catch(err => console.error("Sincronización remota pendiente:", err));
+  }).catch(err => console.warn("Modo offline: guardado localmente."));
 }
 
 async function loadData() {
-  const cachedLogs = localStorage.getItem("leandro_logs");
-  if(cachedLogs) {
-    appState.logs = JSON.parse(cachedLogs);
-    renderTimeline();
-  }
+  try {
+    const cachedLogs = localStorage.getItem("leandro_logs");
+    if(cachedLogs) {
+      appState.logs = JSON.parse(cachedLogs);
+      renderTimeline();
+    }
+  } catch(e) {}
 
   if(!API_URL || API_URL.includes("REEMPLAZAR")) return;
 
   try {
     const res = await fetch(API_URL + "?action=getData");
     const json = await res.json();
-    if(json.records && json.records.length > 0) {
+    if(json && json.records && Array.isArray(json.records)) {
       const remoteKeys = new Set(json.records.map(r => r.fechainicio || r.fechaInicio));
       const unsyncedLocal = appState.logs.filter(l => !remoteKeys.has(l.fechaInicio));
       appState.logs = [...json.records, ...unsyncedLocal];
       localStorage.setItem("leandro_logs", JSON.stringify(appState.logs));
     }
-    if(json.growth) appState.growth = json.growth;
+    if(json && json.growth) appState.growth = json.growth;
     
     renderTimeline();
     
@@ -290,32 +311,35 @@ async function loadData() {
       renderCharts();
     }
   } catch(err) {
-    console.warn("Utilizando datos locales en caché (offline).", err);
+    console.warn("Sin conexión con Google Sheets. Usando datos en caché.");
   }
 }
 
-// Renderizado de Timeline
+// Visualización Timeline
 function renderTimeline() {
   const container = document.getElementById("timeline-bar");
   const list = document.getElementById("timeline-log-list");
-  if(!container) return;
+  if(!container || !list) return;
   
   container.innerHTML = "";
   list.innerHTML = "";
 
   const todayStr = new Date().toDateString();
-  const todayLogs = appState.logs.filter(l => new Date(l.fechaInicio || l.fechainicio).toDateString() === todayStr);
+  const todayLogs = appState.logs.filter(l => {
+    const d = new Date(l.fechaInicio || l.fechainicio);
+    return !isNaN(d) && d.toDateString() === todayStr;
+  });
 
   todayLogs.forEach(log => {
     const start = new Date(log.fechaInicio || log.fechainicio);
     const startMins = start.getHours() * 60 + start.getMinutes();
     const leftPct = (startMins / 1440) * 100;
     
-    let durationMins = log.unidad === 'min' ? log.valor : 15;
+    let durationMins = log.unidad === 'min' ? (parseFloat(log.valor) || 15) : 15;
     const widthPct = Math.max((durationMins / 1440) * 100, 1.5);
 
     const block = document.createElement("div");
-    block.className = `timeline-block bg-${log.categoria}`;
+    block.className = `timeline-block bg-${log.categoria || 'activity'}`;
     block.style.left = `${leftPct}%`;
     block.style.width = `${widthPct}%`;
     block.title = `${log.subtipo} - ${start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
@@ -342,15 +366,17 @@ function initTeethMap() {
     "Canino Inf Izq", "Canino Inf Der", "Molar Inf Izq", "Molar Inf Der"
   ];
 
-  const savedTeeth = JSON.parse(localStorage.getItem("leandro_teeth") || "{}");
+  let savedTeeth = {};
+  try { savedTeeth = JSON.parse(localStorage.getItem("leandro_teeth") || "{}"); } catch(e) {}
 
+  container.innerHTML = "";
   teethList.forEach(tooth => {
     const div = document.createElement("div");
     div.className = `tooth-item ${savedTeeth[tooth] ? 'erupted' : ''}`;
     div.textContent = tooth;
     div.onclick = () => {
       savedTeeth[tooth] = !savedTeeth[tooth];
-      localStorage.setItem("leandro_teeth", JSON.stringify(savedTeeth));
+      try { localStorage.setItem("leandro_teeth", JSON.stringify(savedTeeth)); } catch(e) {}
       div.classList.toggle("erupted");
     };
     container.appendChild(div);
@@ -385,8 +411,10 @@ function initGrowthForm() {
   };
 }
 
-// CÁLCULO DINÁMICO DE ESTADÍSTICAS EN REAL-TIME (Chart.js)
+// Gráficos con Chart.js
 function renderCharts() {
+  if(typeof Chart === 'undefined') return;
+
   const ctxSleep = document.getElementById("chart-sleep")?.getContext("2d");
   const ctxFeed = document.getElementById("chart-feeding")?.getContext("2d");
   const ctxDiapers = document.getElementById("chart-diapers")?.getContext("2d");
@@ -405,6 +433,8 @@ function renderCharts() {
   const now = new Date();
   appState.logs.forEach(log => {
     const logDate = new Date(log.fechaInicio || log.fechainicio);
+    if(isNaN(logDate)) return;
+    
     const diffDays = Math.floor((now - logDate) / (1000 * 60 * 60 * 24));
 
     if (diffDays >= 0 && diffDays < 7) {
@@ -415,7 +445,7 @@ function renderCharts() {
       if (log.categoria === 'feed' && log.unidad === 'ml') {
         feedVol[dayIdx] += parseFloat(log.valor) || 0;
       }
-      if (log.categoria === 'hygiene' && log.subtipo.includes('Panal')) {
+      if (log.categoria === 'hygiene' && log.subtipo && log.subtipo.includes('Panal')) {
         if (log.subtipo.includes('Pis')) diaperCounts.Pis++;
         else if (log.subtipo.includes('Caca')) diaperCounts.Caca++;
         else if (log.subtipo.includes('Mixto')) diaperCounts.Mixto++;
@@ -450,5 +480,4 @@ function renderCharts() {
       options: { responsive: true }
     });
   }
-}
 }
