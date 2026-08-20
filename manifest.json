@@ -1,0 +1,22 @@
+{
+  "name": "Leandro App - Seguimiento Infantil",
+  "short_name": "Leandro",
+  "description": "Progressive Web App para el seguimiento diario de la rutina, salud y desarrollo de Leandro.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#3b82f6",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3082/3082060.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3082/3082060.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
