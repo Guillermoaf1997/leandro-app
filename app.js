@@ -9,18 +9,25 @@ let appState = {
   timerInterval: null,
   wakeInterval: null,
   logs: [],
-  growth: [],
-  birthDate: null // Si se configura, calcula la edad automáticamente
+  growth: []
 };
 
 let chartSleepInst = null;
 let chartFeedInst = null;
 let chartDiaperInst = null;
 
+// Audio Context para Ruido Rosa sintetizado (sin archivos externos)
+let audioCtx = null;
+let noiseNode = null;
+let gainNode = null;
+
 // Inicialización segura
 document.addEventListener("DOMContentLoaded", () => {
   try { initTabs(); } catch(e) { console.error("Error en initTabs:", e); }
   try { initSleepTracker(); } catch(e) { console.error("Error en initSleepTracker:", e); }
+  try { initNightMode(); } catch(e) { console.error("Error en initNightMode:", e); }
+  try { initNoisePlayer(); } catch(e) { console.error("Error en initNoisePlayer:", e); }
+  try { initPediatricExporter(); } catch(e) { console.error("Error en initPediatricExporter:", e); }
   try { initTeethMap(); } catch(e) { console.error("Error en initTeethMap:", e); }
   try { initModal(); } catch(e) { console.error("Error en initModal:", e); }
   try { initGrowthForm(); } catch(e) { console.error("Error en initGrowthForm:", e); }
@@ -37,56 +44,221 @@ document.addEventListener("visibilitychange", () => {
 });
 setInterval(loadData, 60000);
 
-// CÁLCULO DE EDAD EN MESES
-function getBabyAgeInMonths() {
-  const savedBirth = localStorage.getItem("leandro_birth_date");
-  if (!savedBirth) return 0; // Recién nacido por defecto
+// MODO TOMA NOCTURNA
+function initNightMode() {
+  const btn = document.getElementById("btn-night-mode");
+  if(!btn) return;
   
-  const birth = new Date(savedBirth);
-  const now = new Date();
-  if (isNaN(birth) || birth > now) return 0;
-  
-  const diffDays = Math.floor((now - birth) / (1000 * 60 * 60 * 24));
-  return Math.floor(diffDays / 30.44);
+  const savedNight = localStorage.getItem("leandro_night_mode") === "true";
+  if(savedNight) document.body.classList.add("night-mode");
+
+  btn.addEventListener("click", () => {
+    document.body.classList.toggle("night-mode");
+    const isNight = document.body.classList.contains("night-mode");
+    localStorage.setItem("leandro_night_mode", isNight);
+  });
 }
 
-// ALGORITMO PREDICTIVO DE SIESTAS Y COMIDAS (SweetSpot)
-function getSmartPredictions() {
-  const ageMonths = getBabyAgeInMonths();
-  const now = new Date();
+// REPRODUCTOR DE RUIDO ROSA (ÚTERO) VÍA WEB AUDIO API
+function initNoisePlayer() {
+  const btn = document.getElementById("btn-toggle-noise");
+  const volInput = document.getElementById("noise-volume");
+  if(!btn) return;
 
-  // 1. Ventana de despierto según desarrollo
-  let wakeWindowMins = 50; // Recién nacido: 45 - 60 min
-  if (ageMonths === 1) wakeWindowMins = 75;
-  else if (ageMonths >= 2 && ageMonths <= 3) wakeWindowMins = 90;
-  else if (ageMonths >= 4 && ageMonths <= 6) wakeWindowMins = 120;
-  else if (ageMonths >= 7 && ageMonths <= 9) wakeWindowMins = 160;
-  else if (ageMonths >= 10) wakeWindowMins = 210;
+  btn.addEventListener("click", () => {
+    if(noiseNode) {
+      stopNoise();
+    } else {
+      startPinkNoise();
+    }
+  });
 
-  const lastSleepEnd = new Date(appState.lastSleepEndTime);
-  const nextNapTime = new Date(lastSleepEnd.getTime() + wakeWindowMins * 60000);
+  if(volInput) {
+    volInput.addEventListener("input", (e) => {
+      if(gainNode) gainNode.gain.value = parseFloat(e.target.value);
+    });
+  }
+}
 
-  // 2. Estimación de próxima toma según última categoría
-  const lastFeed = appState.logs.slice().reverse().find(l => l.categoria === 'feed');
-  let feedIntervalMins = 120; // 2 horas por defecto para recién nacido
-
-  if (lastFeed && lastFeed.subtipo) {
-    if (lastFeed.subtipo.includes('Lactancia')) feedIntervalMins = 120;   // ~2h
-    else if (lastFeed.subtipo.includes('Biberon')) feedIntervalMins = 180; // ~3h
-    else if (lastFeed.subtipo.includes('Solido')) feedIntervalMins = 240;  // ~4h
+function startPinkNoise() {
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const bufferSize = 2 * audioCtx.sampleRate;
+  const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+  const output = noiseBuffer.getChannelData(0);
+  
+  let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+  for (let i = 0; i < bufferSize; i++) {
+    let white = Math.random() * 2 - 1;
+    b0 = 0.99886 * b0 + white * 0.0555179;
+    b1 = 0.99332 * b1 + white * 0.0750759;
+    b2 = 0.96900 * b2 + white * 0.1538520;
+    b3 = 0.86650 * b3 + white * 0.3104856;
+    b4 = 0.55000 * b4 + white * 0.5329522;
+    b5 = -0.7616 * b5 - white * 0.0168980;
+    output[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
+    output[i] *= 0.11;
+    b6 = white * 0.115926;
   }
 
-  const lastFeedTime = lastFeed ? new Date(lastFeed.fechaInicio || lastFeed.fechainicio) : now;
-  const nextFeedTime = new Date(lastFeedTime.getTime() + feedIntervalMins * 60000);
+  noiseNode = audioCtx.createBufferSource();
+  noiseNode.buffer = noiseBuffer;
+  noiseNode.loop = true;
 
-  return {
-    wakeWindowMins,
-    nextNapStr: nextNapTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    nextFeedStr: nextFeedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-  };
+  gainNode = audioCtx.createGain();
+  const volVal = parseFloat(document.getElementById("noise-volume")?.value || 0.3);
+  gainNode.gain.value = volVal;
+
+  noiseNode.connect(gainNode);
+  gainNode.connect(audioCtx.destination);
+  noiseNode.start();
+
+  const btn = document.getElementById("btn-toggle-noise");
+  if(btn) {
+    btn.textContent = "⏹️ Detener Sonido";
+    btn.style.backgroundColor = "var(--color-warning)";
+  }
 }
 
-// Navegación por pestañas
+function stopNoise() {
+  if(noiseNode) {
+    noiseNode.stop();
+    noiseNode.disconnect();
+    noiseNode = null;
+  }
+  if(audioCtx) {
+    audioCtx.close();
+    audioCtx = null;
+  }
+  const btn = document.getElementById("btn-toggle-noise");
+  if(btn) {
+    btn.textContent = "🔊 Iniciar Ruido Rosa (Útero)";
+    btn.style.backgroundColor = "var(--color-sleep)";
+  }
+}
+
+// SEMÁFORO DE HIDRATACIÓN (6 PAÑALES/DÍA)
+function updateHydrationWidget() {
+  const countElem = document.getElementById("hydration-count");
+  const barElem = document.getElementById("hydration-bar-fill");
+  const statusElem = document.getElementById("hydration-status");
+  if(!countElem || !barElem) return;
+
+  const todayStr = new Date().toDateString();
+  const todayWetDiapers = appState.logs.filter(l => {
+    const d = new Date(l.fechaInicio || l.fechainicio);
+    return !isNaN(d) && d.toDateString() === todayStr && 
+           l.categoria === 'hygiene' && 
+           (l.subtipo.includes('Panal') || l.subtipo.includes('Pis') || l.subtipo.includes('Mixto'));
+  }).length;
+
+  const target = 6;
+  const pct = Math.min(100, Math.round((todayWetDiapers / target) * 100));
+
+  countElem.textContent = `${todayWetDiapers}/${target}`;
+  barElem.style.width = `${pct}%`;
+
+  if(todayWetDiapers < 3) {
+    barElem.style.backgroundColor = "var(--color-warning)";
+    statusElem.textContent = "Alerta: Pocas deposiciones/pis hoy";
+  } else if(todayWetDiapers < 6) {
+    barElem.style.backgroundColor = "var(--color-alert)";
+    statusElem.textContent = "Hidratación en progreso";
+  } else {
+    barElem.style.backgroundColor = "var(--color-optimal)";
+    statusElem.textContent = "¡Excelente! Hidratación óptima alcanzada";
+  }
+}
+
+// EXPORTADOR DE FICHA PEDIÁTRICA
+function initPediatricExporter() {
+  const btn = document.getElementById("btn-export-report");
+  if(!btn) return;
+
+  btn.addEventListener("click", () => {
+    const now = new Date();
+    const last7Days = appState.logs.filter(l => {
+      const d = new Date(l.fechaInicio || l.fechainicio);
+      return !isNaN(d) && (now - d) <= (7 * 24 * 60 * 60 * 1000);
+    });
+
+    let totalSleepMins = 0;
+    let totalFormulaMl = 0;
+    let totalBreastFeeds = 0;
+    let pisCount = 0;
+    let cacaCount = 0;
+
+    last7Days.forEach(l => {
+      if (l.categoria === 'sleep') totalSleepMins += parseFloat(l.valor) || 0;
+      if (l.categoria === 'feed') {
+        if (l.subtipo.includes('Biberon')) totalFormulaMl += parseFloat(l.valor) || 0;
+        if (l.subtipo.includes('Lactancia')) totalBreastFeeds++;
+      }
+      if (l.categoria === 'hygiene') {
+        if (l.subtipo.includes('Pis')) pisCount++;
+        if (l.subtipo.includes('Caca')) cacaCount++;
+        if (l.subtipo.includes('Mixto')) { pisCount++; cacaCount++; }
+      }
+    });
+
+    const avgSleepHrs = (totalSleepMins / 60 / 7).toFixed(1);
+    const avgFormulaMl = Math.round(totalFormulaMl / 7);
+    const avgBreastFeeds = (totalBreastFeeds / 7).toFixed(1);
+
+    const latestGrowth = appState.growth.length > 0 ? appState.growth[appState.growth.length - 1] : null;
+
+    const reportHtml = `
+      <!DOCTYPE html>
+      <html lang="es">
+      <head>
+        <meta charset="UTF-8">
+        <title>Informe Pediatra - Leandro</title>
+        <style>
+          body { font-family: system-ui, sans-serif; padding: 20px; color: #0f172a; line-height: 1.5; }
+          h1 { color: #2563eb; font-size: 1.4rem; margin-bottom: 4px; }
+          .section { background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; margin-bottom: 12px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+          td, th { padding: 8px; border-bottom: 1px solid #cbd5e1; text-align: left; font-size: 0.9rem; }
+          .btn-print { padding: 10px 16px; background: #2563eb; color: #fff; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        </style>
+      </head>
+      <body>
+        <h1>👶 Resumen Clínico Leandro</h1>
+        <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 16px;">Generado el ${new Date().toLocaleDateString('es-ES')}</p>
+        
+        <div class="section">
+          <h3>📊 Promedios Diarios (Últimos 7 días)</h3>
+          <table>
+            <tr><th>Métrica</th><th>Valor Promedio</th></tr>
+            <tr><td>Horas de Sueño Totales</td><td>${avgSleepHrs} h/día</td></tr>
+            <tr><td>Volumen Biberón</td><td>${avgFormulaMl} ml/día</td></tr>
+            <tr><td>Tomas de Lactancia</td><td>${avgBreastFeeds} veces/día</td></tr>
+            <tr><td>Pañales Mojados (Pis)</td><td>${pisCount} totales</td></tr>
+            <tr><td>Deposiciones (Caca)</td><td>${cacaCount} totales</td></tr>
+          </table>
+        </div>
+
+        <div class="section">
+          <h3>📏 ÚLTIMA MEDICIÓN REGISTRADA</h3>
+          ${latestGrowth ? `
+            <p><strong>Fecha:</strong> ${new Date(latestGrowth.fecha).toLocaleDateString('es-ES')}</p>
+            <p><strong>Peso:</strong> ${latestGrowth.peso} kg</p>
+            <p><strong>Talla:</strong> ${latestGrowth.talla} cm</p>
+            <p><strong>Perímetro Cefálico:</strong> ${latestGrowth.perimetro} cm</p>
+          ` : '<p style="font-size: 0.85rem; color: #64748b;">No hay mediciones antropométricas registradas aún.</p>'}
+        </div>
+
+        <button onclick="window.print()" class="btn-print">🖨️ Imprimir / Descargar PDF</button>
+      </body>
+      </html>
+    `;
+
+    const win = window.open('', '_blank');
+    win.document.write(reportHtml);
+    win.document.close();
+  });
+}
+
+// NAVEGACIÓN Y TABS
 function initTabs() {
   const tabs = document.querySelectorAll(".tab-btn");
   tabs.forEach(tab => {
@@ -101,7 +273,7 @@ function initTabs() {
   });
 }
 
-// Control de Sueño y Alertas de Fatiga
+// CONTROL DE SUEÑO
 function initSleepTracker() {
   const sleepBtn = document.getElementById("btn-toggle-sleep");
   if(!sleepBtn) return;
@@ -114,9 +286,7 @@ function initSleepTracker() {
       appState.sleepStartTime = data.sleepStartTime ? new Date(data.sleepStartTime) : null;
       appState.lastSleepEndTime = data.lastSleepEndTime ? new Date(data.lastSleepEndTime) : new Date();
     }
-  } catch(e) {
-    console.warn("Error leyendo estado de sueño local", e);
-  }
+  } catch(e) {}
 
   updateSleepUI();
   startWakeWindowTimer();
@@ -197,19 +367,15 @@ function startWakeWindowTimer() {
       badge.textContent = "Durmiendo...";
       return;
     }
-    
     const diffMins = Math.floor((new Date() - new Date(appState.lastSleepEndTime)) / 60000);
     const hrs = Math.floor(diffMins / 60);
     const mins = diffMins % 60;
     
-    const predictions = getSmartPredictions();
-    const targetMins = predictions.wakeWindowMins;
-    
-    badge.textContent = `Despierto: ${hrs}h ${mins}m (Próx. siesta ~${predictions.nextNapStr})`;
+    badge.textContent = `Despierto: ${hrs}h ${mins}m`;
 
-    if(diffMins < targetMins) {
+    if(diffMins < 60) {
       badge.className = "badge badge-optimal";
-    } else if(diffMins <= targetMins + 20) {
+    } else if(diffMins <= 90) {
       badge.className = "badge badge-alert";
     } else {
       badge.className = "badge badge-overtired";
@@ -217,7 +383,7 @@ function startWakeWindowTimer() {
   }, 10000);
 }
 
-// Modal Dinámico
+// MODAL DINÁMICO
 function initModal() {
   const modal = document.getElementById("action-modal");
   const closeBtn = document.querySelector(".modal-close");
@@ -233,10 +399,7 @@ function initModal() {
   });
 
   if(closeBtn) closeBtn.onclick = () => modal.classList.remove("active");
-  
-  window.onclick = (e) => {
-    if (e.target === modal) modal.classList.remove("active");
-  };
+  window.onclick = (e) => { if (e.target === modal) modal.classList.remove("active"); };
 
   form.onsubmit = (e) => {
     e.preventDefault();
@@ -316,21 +479,20 @@ function getCategoryGroup(type) {
   return 'activity';
 }
 
-// Persistencia local y remota
+// PERSISTENCIA Y TIMELINE
 function saveRecord(recordData) {
   appState.logs.push(recordData);
-  try {
-    localStorage.setItem("leandro_logs", JSON.stringify(appState.logs));
-  } catch(e) {}
+  try { localStorage.setItem("leandro_logs", JSON.stringify(appState.logs)); } catch(e) {}
   
   renderTimeline();
+  updateHydrationWidget();
 
   fetch(API_URL, {
     method: "POST",
     mode: "no-cors",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ action: "addRecord", data: recordData })
-  }).catch(err => console.warn("Modo offline: guardado localmente."));
+  }).catch(err => console.warn("Guardado localmente en caché."));
 }
 
 async function loadData() {
@@ -339,6 +501,7 @@ async function loadData() {
     if(cachedLogs) {
       appState.logs = JSON.parse(cachedLogs);
       renderTimeline();
+      updateHydrationWidget();
     }
   } catch(e) {}
 
@@ -354,17 +517,17 @@ async function loadData() {
     if(json && json.growth) appState.growth = json.growth;
     
     renderTimeline();
+    updateHydrationWidget();
     
     const activeTab = document.querySelector(".tab-btn.active");
     if(activeTab && activeTab.dataset.tab === 'tab-stats') {
       renderCharts();
     }
   } catch(err) {
-    console.warn("Sin conexión con Google Sheets. Usando datos en caché.");
+    console.warn("Usando caché offline.");
   }
 }
 
-// Visualización Timeline
 function renderTimeline() {
   const container = document.getElementById("timeline-bar");
   const list = document.getElementById("timeline-log-list");
@@ -397,13 +560,13 @@ function renderTimeline() {
     const item = document.createElement("div");
     item.className = "text-sm";
     item.style.padding = "6px 0";
-    item.style.borderBottom = "1px solid #f1f5f9";
+    item.style.borderBottom = "1px solid var(--border-color)";
     item.innerHTML = `<strong>${start.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</strong> - ${log.subtipo} ${log.valor ? `(${log.valor} ${log.unidad})` : ''}`;
     list.appendChild(item);
   });
 }
 
-// Dentición
+// DENTICIÓN Y ANTROPOMETRÍA
 function initTeethMap() {
   const container = document.getElementById("teeth-map");
   if(!container) return;
@@ -432,7 +595,6 @@ function initTeethMap() {
   });
 }
 
-// Crecimiento
 function initGrowthForm() {
   const form = document.getElementById("growth-form");
   if(!form) return;
@@ -458,7 +620,7 @@ function initGrowthForm() {
   };
 }
 
-// Gráficos con Chart.js
+// GRÁFICOS CON CHART.JS
 function renderCharts() {
   if(typeof Chart === 'undefined') return;
 
