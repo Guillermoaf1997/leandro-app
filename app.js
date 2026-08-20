@@ -12,6 +12,11 @@ let appState = {
   growth: []
 };
 
+// Instancias globales de gráficos para destrucción/redibujado limpio
+let chartSleepInst = null;
+let chartFeedInst = null;
+let chartDiaperInst = null;
+
 // Inicialización
 document.addEventListener("DOMContentLoaded", () => {
   initTabs();
@@ -25,6 +30,15 @@ document.addEventListener("DOMContentLoaded", () => {
     navigator.serviceWorker.register('sw.js').catch(err => console.log('SW registration failed:', err));
   }
 });
+
+// Auto-sincronización en tiempo real al reenfocar la pantalla y polling periódico
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") {
+    loadData();
+  }
+});
+
+setInterval(loadData, 60000); // Recarga automática cada 60 segundos
 
 // Navegación por pestañas
 function initTabs() {
@@ -268,7 +282,13 @@ async function loadData() {
       localStorage.setItem("leandro_logs", JSON.stringify(appState.logs));
     }
     if(json.growth) appState.growth = json.growth;
+    
     renderTimeline();
+    
+    const activeTab = document.querySelector(".tab-btn.active");
+    if(activeTab && activeTab.dataset.tab === 'tab-stats') {
+      renderCharts();
+    }
   } catch(err) {
     console.warn("Utilizando datos locales en caché (offline).", err);
   }
@@ -365,42 +385,70 @@ function initGrowthForm() {
   };
 }
 
-// Gráficos con Chart.js
+// CÁLCULO DINÁMICO DE ESTADÍSTICAS EN REAL-TIME (Chart.js)
 function renderCharts() {
   const ctxSleep = document.getElementById("chart-sleep")?.getContext("2d");
   const ctxFeed = document.getElementById("chart-feeding")?.getContext("2d");
   const ctxDiapers = document.getElementById("chart-diapers")?.getContext("2d");
 
+  const days = [];
+  const sleepHours = [0,0,0,0,0,0,0];
+  const feedVol = [0,0,0,0,0,0,0];
+  let diaperCounts = { Pis: 0, Caca: 0, Mixto: 0 };
+
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    days.push(d.toLocaleDateString('es-ES', { weekday: 'short' }));
+  }
+
+  const now = new Date();
+  appState.logs.forEach(log => {
+    const logDate = new Date(log.fechaInicio || log.fechainicio);
+    const diffDays = Math.floor((now - logDate) / (1000 * 60 * 60 * 24));
+
+    if (diffDays >= 0 && diffDays < 7) {
+      const dayIdx = 6 - diffDays;
+      if (log.categoria === 'sleep') {
+        sleepHours[dayIdx] += (parseFloat(log.valor) || 0) / 60;
+      }
+      if (log.categoria === 'feed' && log.unidad === 'ml') {
+        feedVol[dayIdx] += parseFloat(log.valor) || 0;
+      }
+      if (log.categoria === 'hygiene' && log.subtipo.includes('Panal')) {
+        if (log.subtipo.includes('Pis')) diaperCounts.Pis++;
+        else if (log.subtipo.includes('Caca')) diaperCounts.Caca++;
+        else if (log.subtipo.includes('Mixto')) diaperCounts.Mixto++;
+      }
+    }
+  });
+
+  if(chartSleepInst) chartSleepInst.destroy();
+  if(chartFeedInst) chartFeedInst.destroy();
+  if(chartDiaperInst) chartDiaperInst.destroy();
+
   if(ctxSleep) {
-    new Chart(ctxSleep, {
+    chartSleepInst = new Chart(ctxSleep, {
       type: 'bar',
-      data: {
-        labels: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
-        datasets: [{ label: 'Horas de Sueño', data: [14, 13.5, 14.2, 13, 15, 14, 13.8], backgroundColor: '#3b82f6' }]
-      },
+      data: { labels: days, datasets: [{ label: 'Horas de Sueño', data: sleepHours.map(h => h.toFixed(1)), backgroundColor: '#3b82f6' }] },
       options: { responsive: true, plugins: { legend: { display: false } } }
     });
   }
 
   if(ctxFeed) {
-    new Chart(ctxFeed, {
+    chartFeedInst = new Chart(ctxFeed, {
       type: 'line',
-      data: {
-        labels: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
-        datasets: [{ label: 'Volumen Biberón (ml)', data: [600, 650, 700, 620, 680, 720, 710], borderColor: '#10b981', fill: false }]
-      },
+      data: { labels: days, datasets: [{ label: 'Volumen Biberón (ml)', data: feedVol, borderColor: '#10b981', fill: false }] },
       options: { responsive: true }
     });
   }
 
   if(ctxDiapers) {
-    new Chart(ctxDiapers, {
+    chartDiaperInst = new Chart(ctxDiapers, {
       type: 'doughnut',
-      data: {
-        labels: ['Pis', 'Caca', 'Mixto'],
-        datasets: [{ data: [25, 12, 5], backgroundColor: ['#3b82f6', '#f97316', '#eab308'] }]
-      },
+      data: { labels: ['Pis', 'Caca', 'Mixto'], datasets: [{ data: [diaperCounts.Pis, diaperCounts.Caca, diaperCounts.Mixto], backgroundColor: ['#3b82f6', '#f97316', '#eab308'] }] },
       options: { responsive: true }
     });
   }
+}
 }
