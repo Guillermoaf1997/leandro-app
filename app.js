@@ -1,6 +1,5 @@
-// CONFIGURACIÓN GLOBAL
-// Asegúrate de que la URL termine en /exec y conserve las comillas dobles
-const API_URL = "REEMPLAZAR_CON_TU_SCRIPT_URL_DESPLEGADO";
+// CONFIGURACIÓN GLOBAL (URL de tu Google Apps Script integrada)
+const API_URL = "https://script.google.com/macros/s/AKfycbwfeq_wGQhlP1P8OeiHwHNcRiHYdIXB4nHdxUUvcJwr8UTYNrRJZGJ9giiyt7cuJnN2/exec";
 
 // Estado de la aplicación
 let appState = {
@@ -272,8 +271,6 @@ function saveRecord(recordData) {
   
   renderTimeline();
 
-  if(!API_URL || API_URL.includes("REEMPLAZAR")) return;
-
   fetch(API_URL, {
     method: "POST",
     mode: "no-cors",
@@ -290,8 +287,6 @@ async function loadData() {
       renderTimeline();
     }
   } catch(e) {}
-
-  if(!API_URL || API_URL.includes("REEMPLAZAR")) return;
 
   try {
     const res = await fetch(API_URL + "?action=getData");
@@ -398,14 +393,12 @@ function initGrowthForm() {
     };
     
     appState.growth.push(payload);
-    if(API_URL && !API_URL.includes("REEMPLAZAR")) {
-      fetch(API_URL, {
-        method: "POST",
-        mode: "no-cors",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "addGrowth", data: payload })
-      });
-    }
+    fetch(API_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "addGrowth", data: payload })
+    });
     alert("Medición registrada con éxito");
     form.reset();
   };
