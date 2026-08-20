@@ -9,7 +9,8 @@ let appState = {
   timerInterval: null,
   wakeInterval: null,
   logs: [],
-  growth: []
+  growth: [],
+  birthDate: null // Si se configura, calcula la edad automáticamente
 };
 
 let chartSleepInst = null;
@@ -36,6 +37,55 @@ document.addEventListener("visibilitychange", () => {
 });
 setInterval(loadData, 60000);
 
+// CÁLCULO DE EDAD EN MESES
+function getBabyAgeInMonths() {
+  const savedBirth = localStorage.getItem("leandro_birth_date");
+  if (!savedBirth) return 0; // Recién nacido por defecto
+  
+  const birth = new Date(savedBirth);
+  const now = new Date();
+  if (isNaN(birth) || birth > now) return 0;
+  
+  const diffDays = Math.floor((now - birth) / (1000 * 60 * 60 * 24));
+  return Math.floor(diffDays / 30.44);
+}
+
+// ALGORITMO PREDICTIVO DE SIESTAS Y COMIDAS (SweetSpot)
+function getSmartPredictions() {
+  const ageMonths = getBabyAgeInMonths();
+  const now = new Date();
+
+  // 1. Ventana de despierto según desarrollo
+  let wakeWindowMins = 50; // Recién nacido: 45 - 60 min
+  if (ageMonths === 1) wakeWindowMins = 75;
+  else if (ageMonths >= 2 && ageMonths <= 3) wakeWindowMins = 90;
+  else if (ageMonths >= 4 && ageMonths <= 6) wakeWindowMins = 120;
+  else if (ageMonths >= 7 && ageMonths <= 9) wakeWindowMins = 160;
+  else if (ageMonths >= 10) wakeWindowMins = 210;
+
+  const lastSleepEnd = new Date(appState.lastSleepEndTime);
+  const nextNapTime = new Date(lastSleepEnd.getTime() + wakeWindowMins * 60000);
+
+  // 2. Estimación de próxima toma según última categoría
+  const lastFeed = appState.logs.slice().reverse().find(l => l.categoria === 'feed');
+  let feedIntervalMins = 120; // 2 horas por defecto para recién nacido
+
+  if (lastFeed && lastFeed.subtipo) {
+    if (lastFeed.subtipo.includes('Lactancia')) feedIntervalMins = 120;   // ~2h
+    else if (lastFeed.subtipo.includes('Biberon')) feedIntervalMins = 180; // ~3h
+    else if (lastFeed.subtipo.includes('Solido')) feedIntervalMins = 240;  // ~4h
+  }
+
+  const lastFeedTime = lastFeed ? new Date(lastFeed.fechaInicio || lastFeed.fechainicio) : now;
+  const nextFeedTime = new Date(lastFeedTime.getTime() + feedIntervalMins * 60000);
+
+  return {
+    wakeWindowMins,
+    nextNapStr: nextNapTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    nextFeedStr: nextFeedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  };
+}
+
 // Navegación por pestañas
 function initTabs() {
   const tabs = document.querySelectorAll(".tab-btn");
@@ -51,7 +101,7 @@ function initTabs() {
   });
 }
 
-// Lógica de Sueño y Wake Windows
+// Control de Sueño y Alertas de Fatiga
 function initSleepTracker() {
   const sleepBtn = document.getElementById("btn-toggle-sleep");
   if(!sleepBtn) return;
@@ -147,15 +197,19 @@ function startWakeWindowTimer() {
       badge.textContent = "Durmiendo...";
       return;
     }
+    
     const diffMins = Math.floor((new Date() - new Date(appState.lastSleepEndTime)) / 60000);
     const hrs = Math.floor(diffMins / 60);
     const mins = diffMins % 60;
     
-    badge.textContent = `Despierto: ${hrs}h ${mins}m`;
+    const predictions = getSmartPredictions();
+    const targetMins = predictions.wakeWindowMins;
+    
+    badge.textContent = `Despierto: ${hrs}h ${mins}m (Próx. siesta ~${predictions.nextNapStr})`;
 
-    if(diffMins < 120) {
+    if(diffMins < targetMins) {
       badge.className = "badge badge-optimal";
-    } else if(diffMins <= 180) {
+    } else if(diffMins <= targetMins + 20) {
       badge.className = "badge badge-alert";
     } else {
       badge.className = "badge badge-overtired";
@@ -207,7 +261,7 @@ function setupModalFields(type) {
     fieldsContainer.innerHTML = `
       <div class="form-group">
         <label>Cantidad (ml)</label>
-        <input type="number" id="field-val" placeholder="120" required>
+        <input type="number" id="field-val" placeholder="60" required>
       </div>`;
   } else if(type === 'Lactancia') {
     fieldsContainer.innerHTML = `
