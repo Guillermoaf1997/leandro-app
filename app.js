@@ -9,8 +9,9 @@ let appState = {
   teeth: []
 };
 
-// COLA OFFLINE (Sincronización en lote)
-let syncQueue = JSON.parse(localStorage.getItem("leandro_sync_queue") || '{"records":[],"growth":[],"teeth":[]}');
+// COLA OFFLINE (Incluye lista de IDs eliminados)
+let syncQueue = JSON.parse(localStorage.getItem("leandro_sync_queue") || '{"records":[],"growth":[],"teeth":[],"deletedIds":[]}');
+if (!syncQueue.deletedIds) syncQueue.deletedIds = [];
 
 let chartSleepInst = null, chartFeedInst = null, chartDiaperInst = null;
 let audioCtx = null, noiseNode = null, gainNode = null;
@@ -44,10 +45,10 @@ document.addEventListener("visibilitychange", () => {
     loadData();
   }
 });
-setInterval(processSyncQueue, 15000); // Intenta enviar cola pendiente cada 15s
-setInterval(loadData, 30000); // Actualiza datos cada 30s
+setInterval(processSyncQueue, 15000);
+setInterval(loadData, 30000);
 
-// AJUSTES Y SEGURIDAD (URL Oculta y Fecha Nacimiento)
+// AJUSTES Y SEGURIDAD
 function initSettings() {
   const modal = document.getElementById("settings-modal");
   const btnOpen = document.getElementById("btn-settings");
@@ -73,21 +74,20 @@ function initSettings() {
   };
 }
 
-// SINCRONIZACIÓN CORREGIDA (CORS + Cola Offline)
+// SINCRONIZACIÓN Y BORRADO
 async function processSyncQueue() {
   const url = localStorage.getItem("leandro_api_url");
-  if (!url || (syncQueue.records.length === 0 && syncQueue.growth.length === 0 && syncQueue.teeth.length === 0)) return;
+  if (!url || (syncQueue.records.length === 0 && syncQueue.growth.length === 0 && syncQueue.teeth.length === 0 && syncQueue.deletedIds.length === 0)) return;
 
   try {
     const res = await fetch(url, {
       method: "POST",
-      // Content-Type crudo previene el preflight OPTIONS de CORS que falla en Apps Script
       headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify({ action: "sync", data: syncQueue })
     });
     
     if (res.ok) {
-      syncQueue = { records: [], growth: [], teeth: [] };
+      syncQueue = { records: [], growth: [], teeth: [], deletedIds: [] };
       localStorage.setItem("leandro_sync_queue", JSON.stringify(syncQueue));
     }
   } catch (err) {
@@ -98,7 +98,6 @@ async function processSyncQueue() {
 async function loadData() {
   const url = localStorage.getItem("leandro_api_url");
   
-  // Cargar de caché local primero para velocidad
   try {
     const cachedLogs = localStorage.getItem("leandro_logs");
     if(cachedLogs) {
@@ -116,14 +115,14 @@ async function loadData() {
     const json = await res.json();
     
     if(json.records) {
-      // Deduplicación basada en UUID (id)
+      const deletedSet = new Set(syncQueue.deletedIds || []);
       const remoteKeys = new Set(json.records.map(r => r.id));
+      
+      // Filtrar los que hayan sido eliminados localmente
+      const filteredRemote = json.records.filter(r => !deletedSet.has(r.id));
       const unsyncedLocal = appState.logs.filter(l => !remoteKeys.has(l.id) && syncQueue.records.find(q => q.id === l.id));
       
-      // Asegurarse de que los registros remotos mantengan su formato correcto y fusionar
-      appState.logs = [...json.records, ...unsyncedLocal];
-      
-      // Ordenar por fecha para que el timeline sea coherente
+      appState.logs = [...filteredRemote, ...unsyncedLocal];
       appState.logs.sort((a, b) => new Date(a.fechaInicio) - new Date(b.fechaInicio));
 
       localStorage.setItem("leandro_logs", JSON.stringify(appState.logs));
@@ -160,10 +159,39 @@ function saveToQueueAndState(type, data) {
   processSyncQueue();
 }
 
-// VENTANAS DE SUEÑO DINÁMICAS (Por edad)
+// BORRAR UN REGISTRO
+function deleteRecord(id) {
+  if (!confirm("¿Quieres eliminar este registro?")) return;
+
+  // 1. Eliminar de la memoria local
+  appState.logs = appState.logs.filter(l => l.id !== id);
+  localStorage.setItem("leandro_logs", JSON.stringify(appState.logs));
+
+  // 2. Eliminar de la cola de envío si aún no se había subido
+  syncQueue.records = syncQueue.records.filter(r => r.id !== id);
+
+  // 3. Añadir a la lista de borrados para sincronizar con Google Sheets
+  if (!syncQueue.deletedIds) syncQueue.deletedIds = [];
+  if (!syncQueue.deletedIds.includes(id)) {
+    syncQueue.deletedIds.push(id);
+  }
+  localStorage.setItem("leandro_sync_queue", JSON.stringify(syncQueue));
+
+  // 4. Actualizar la vista de forma inmediata
+  renderTimeline();
+  updateHydrationWidget();
+  if (document.querySelector(".tab-btn.active")?.dataset.tab === 'tab-stats') {
+    renderCharts();
+  }
+
+  // 5. Enviar orden de borrado al servidor
+  processSyncQueue();
+}
+
+// VENTANAS DE SUEÑO DINÁMICAS
 function getWakeWindowThreshold() {
   const bdStr = localStorage.getItem("leandro_birth_date");
-  if(!bdStr) return 60; // Default si no hay ajuste
+  if(!bdStr) return 60;
   const bd = new Date(bdStr);
   const ageMonths = (new Date() - bd) / (1000 * 60 * 60 * 24 * 30.44);
   
@@ -197,7 +225,7 @@ function startWakeWindowTimer() {
   }, 10000);
 }
 
-// FORMULARIOS ESPECÍFICOS MEJORADOS
+// FORMULARIOS
 function initModal() {
   const modal = document.getElementById("action-modal");
   const closeBtn = document.getElementById("action-close");
@@ -291,7 +319,7 @@ function getCategoryGroup(type) {
   return 'activity';
 }
 
-// DESARROLLO Y DENTICIÓN OFFLINE
+// DESARROLLO Y DENTICIÓN
 function initGrowthForm() {
   const form = document.getElementById("growth-form");
   if(!form) return;
@@ -343,7 +371,6 @@ function refreshTeethUI() {
   const container = document.getElementById("teeth-map");
   if(!container) return;
   
-  // Encontrar el último estado de cada diente
   const latestStates = {};
   appState.teeth.forEach(t => { latestStates[t.tooth] = t.erupted; });
   
@@ -432,7 +459,7 @@ function updateSleepUI() {
   }
 }
 
-// RESTO DE FUNCIONES VISUALES SIMILARES
+// RESTO DE FUNCIONES
 function initNightMode() {
   const btn = document.getElementById("btn-night-mode");
   if(localStorage.getItem("leandro_night_mode") === "true") document.body.classList.add("night-mode");
@@ -464,7 +491,7 @@ function updateHydrationWidget() {
   const todayWetDiapers = appState.logs.filter(l => {
     const d = new Date(l.fechaInicio || l.fechainicio);
     return !isNaN(d) && d.toDateString() === todayStr && 
-           l.categoria === 'hygiene' && 
+           (l.categoria || '').toLowerCase() === 'hygiene' && 
            (l.subtipo.includes('Panal') || l.subtipo.includes('Pis') || l.subtipo.includes('Mixto'));
   }).length;
 
@@ -486,6 +513,7 @@ function updateHydrationWidget() {
   }
 }
 
+// RENDER TIMELINE (CON BOTÓN DE BORRADO 🗑️)
 function renderTimeline() {
   const container = document.getElementById("timeline-bar");
   const list = document.getElementById("timeline-log-list");
@@ -494,7 +522,6 @@ function renderTimeline() {
   container.innerHTML = ""; list.innerHTML = "";
   const todayStr = new Date().toDateString();
   const todayLogs = appState.logs.filter(l => {
-    // IMPORTANTE: Asegurar que tome el campo correcto independientemente de mayúsculas
     const dateStr = l.fechaInicio || l.fechainicio || l.FechaInicio;
     const d = new Date(dateStr);
     return !isNaN(d) && d.toDateString() === todayStr;
@@ -510,23 +537,41 @@ function renderTimeline() {
     const widthPct = Math.max((durationMins / 1440) * 100, 1.5);
 
     const block = document.createElement("div");
-    // Corrección para que la clase bg no falle si la categoría viene en mayúscula
     const cat = (log.categoria || log.Categoria || 'activity').toLowerCase();
     block.className = `timeline-block bg-${cat}`;
     block.style.left = `${leftPct}%`;
     block.style.width = `${widthPct}%`;
     container.appendChild(block);
 
+    // Fila del registro en la lista
     const item = document.createElement("div");
     item.className = "text-sm";
-    item.style.padding = "6px 0";
+    item.style.padding = "8px 0";
     item.style.borderBottom = "1px solid var(--border-color)";
+    item.style.display = "flex";
+    item.style.justifyContent = "space-between";
+    item.style.alignItems = "center";
     
     const subtipo = log.subtipo || log.Subtipo || '';
     const valor = log.valor || log.Valor;
     const unidad = log.unidad || log.Unidad;
 
-    item.innerHTML = `<strong>${start.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</strong> - ${subtipo} ${valor ? `(${valor} ${unidad})` : ''}`;
+    const textSpan = document.createElement("span");
+    textSpan.innerHTML = `<strong>${start.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</strong> - ${subtipo} ${valor ? `(${valor} ${unidad})` : ''}`;
+
+    // Botón de borrado
+    const delBtn = document.createElement("button");
+    delBtn.innerHTML = "🗑️";
+    delBtn.style.background = "none";
+    delBtn.style.border = "none";
+    delBtn.style.cursor = "pointer";
+    delBtn.style.fontSize = "0.95rem";
+    delBtn.style.padding = "2px 6px";
+    delBtn.title = "Eliminar registro";
+    delBtn.onclick = () => deleteRecord(log.id);
+
+    item.appendChild(textSpan);
+    item.appendChild(delBtn);
     list.appendChild(item);
   });
 }
@@ -614,7 +659,6 @@ function renderCharts() {
     const logDate = new Date(dateStr);
     if(isNaN(logDate)) return;
     
-    // Normalizar a medianoche local para contar los días correctamente
     const diffTime = Math.abs(now.setHours(0,0,0,0) - logDate.setHours(0,0,0,0));
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
 
