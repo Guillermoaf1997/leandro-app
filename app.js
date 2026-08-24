@@ -2,14 +2,14 @@
 let appState = {
   isSleeping: false,
   sleepStartTime: null,
-  lastSleepEndTime: new Date(),
+  lastSleepEndTime: null, // Se calculará de forma precisa desde el historial de registros
   timerInterval: null,
   logs: [],
   growth: [],
   teeth: []
 };
 
-// COLA OFFLINE (Incluye lista de IDs eliminados)
+// COLA OFFLINE
 let syncQueue = JSON.parse(localStorage.getItem("leandro_sync_queue") || '{"records":[],"growth":[],"teeth":[],"deletedIds":[]}');
 if (!syncQueue.deletedIds) syncQueue.deletedIds = [];
 
@@ -74,7 +74,7 @@ function initSettings() {
   };
 }
 
-// SINCRONIZACIÓN Y BORRADO
+// SINCRONIZACIÓN Y CARGA DE DATOS
 async function processSyncQueue() {
   const url = localStorage.getItem("leandro_api_url");
   if (!url || (syncQueue.records.length === 0 && syncQueue.growth.length === 0 && syncQueue.teeth.length === 0 && syncQueue.deletedIds.length === 0)) return;
@@ -102,8 +102,10 @@ async function loadData() {
     const cachedLogs = localStorage.getItem("leandro_logs");
     if(cachedLogs) {
       appState.logs = JSON.parse(cachedLogs);
+      updateLastSleepEndTimeFromLogs(); // Recalcular hora fin de último sueño
       renderTimeline(); 
       updateHydrationWidget();
+      updateWakeWindowDisplay();
     }
   } catch(e) {}
 
@@ -118,14 +120,15 @@ async function loadData() {
       const deletedSet = new Set(syncQueue.deletedIds || []);
       const remoteKeys = new Set(json.records.map(r => r.id));
       
-      // Filtrar los que hayan sido eliminados localmente
       const filteredRemote = json.records.filter(r => !deletedSet.has(r.id));
       const unsyncedLocal = appState.logs.filter(l => !remoteKeys.has(l.id) && syncQueue.records.find(q => q.id === l.id));
       
       appState.logs = [...filteredRemote, ...unsyncedLocal];
-      appState.logs.sort((a, b) => new Date(a.fechaInicio) - new Date(b.fechaInicio));
+      appState.logs.sort((a, b) => new Date(a.fechaInicio || a.fechainicio) - new Date(b.fechaInicio || b.fechainicio));
 
       localStorage.setItem("leandro_logs", JSON.stringify(appState.logs));
+      
+      updateLastSleepEndTimeFromLogs(); // Recalcular con datos frescos del servidor
     }
     if(json.growth) appState.growth = json.growth;
     if(json.teeth) appState.teeth = json.teeth;
@@ -133,6 +136,8 @@ async function loadData() {
     renderTimeline();
     updateHydrationWidget();
     refreshTeethUI();
+    updateWakeWindowDisplay();
+    
     if(document.querySelector(".tab-btn.active")?.dataset.tab === 'tab-stats') {
         renderCharts();
     }
@@ -141,12 +146,61 @@ async function loadData() {
   }
 }
 
+// BUSCA EL ÚLTIMO REGISTRO DE SUEÑO FINALIZADO EN EL HISTORIAL
+function updateLastSleepEndTimeFromLogs() {
+  if (appState.isSleeping) return; // Si está durmiendo, el cronómetro activo manda
+
+  const sleepLogs = appState.logs.filter(l => {
+    const cat = (l.categoria || l.Categoria || '').toLowerCase();
+    const sub = (l.subtipo || l.Subtipo || '').toLowerCase();
+    return cat === 'sleep' || sub.includes('sueño') || sub.includes('siesta');
+  });
+
+  if (sleepLogs.length > 0) {
+    // Buscar la fecha de fin más reciente
+    let latestEndTime = null;
+    sleepLogs.forEach(l => {
+      const endStr = l.fechaFin || l.fechafin || l.FechaFin || l.fechaInicio || l.fechainicio;
+      const endDate = new Date(endStr);
+      if (!isNaN(endDate) && (!latestEndTime || endDate > latestEndTime)) {
+        latestEndTime = endDate;
+      }
+    });
+
+    if (latestEndTime) {
+      appState.lastSleepEndTime = latestEndTime;
+      saveSleepState();
+      return;
+    }
+  }
+
+  // Si no hay ningún registro previo de sueño guardado, tomar la hora almacenada en LocalStorage
+  try {
+    const savedState = localStorage.getItem("leandro_sleep_state");
+    if (savedState) {
+      const data = JSON.parse(savedState);
+      if (data.lastSleepEndTime) {
+        appState.lastSleepEndTime = new Date(data.lastSleepEndTime);
+        return;
+      }
+    }
+  } catch(e) {}
+
+  // Si no hay nada de nada, inicializar por defecto al momento actual
+  if (!appState.lastSleepEndTime) {
+    appState.lastSleepEndTime = new Date();
+  }
+}
+
 function saveToQueueAndState(type, data) {
   if (type === 'record') {
     appState.logs.push(data);
     syncQueue.records.push(data);
     localStorage.setItem("leandro_logs", JSON.stringify(appState.logs));
-    renderTimeline(); updateHydrationWidget();
+    updateLastSleepEndTimeFromLogs();
+    renderTimeline(); 
+    updateHydrationWidget();
+    updateWakeWindowDisplay();
   } else if (type === 'growth') {
     appState.growth.push(data);
     syncQueue.growth.push(data);
@@ -159,41 +213,43 @@ function saveToQueueAndState(type, data) {
   processSyncQueue();
 }
 
-// BORRAR UN REGISTRO
 function deleteRecord(id) {
   if (!confirm("¿Quieres eliminar este registro?")) return;
 
-  // 1. Eliminar de la memoria local
   appState.logs = appState.logs.filter(l => l.id !== id);
   localStorage.setItem("leandro_logs", JSON.stringify(appState.logs));
 
-  // 2. Eliminar de la cola de envío si aún no se había subido
   syncQueue.records = syncQueue.records.filter(r => r.id !== id);
 
-  // 3. Añadir a la lista de borrados para sincronizar con Google Sheets
   if (!syncQueue.deletedIds) syncQueue.deletedIds = [];
   if (!syncQueue.deletedIds.includes(id)) {
     syncQueue.deletedIds.push(id);
   }
   localStorage.setItem("leandro_sync_queue", JSON.stringify(syncQueue));
 
-  // 4. Actualizar la vista de forma inmediata
+  updateLastSleepEndTimeFromLogs();
   renderTimeline();
   updateHydrationWidget();
+  updateWakeWindowDisplay();
+  
   if (document.querySelector(".tab-btn.active")?.dataset.tab === 'tab-stats') {
     renderCharts();
   }
 
-  // 5. Enviar orden de borrado al servidor
   processSyncQueue();
 }
 
-// VENTANAS DE SUEÑO DINÁMICAS
+// CÁLCULO Y VISUALIZACIÓN DE VENTANAS DE SUEÑO
 function getWakeWindowThreshold() {
   const bdStr = localStorage.getItem("leandro_birth_date");
   if(!bdStr) return 60;
   const bd = new Date(bdStr);
-  const ageMonths = (new Date() - bd) / (1000 * 60 * 60 * 24 * 30.44);
+  const now = new Date();
+  
+  // Si la fecha introducida es en el futuro (FPP), asumimos recién nacido
+  if (bd > now) return 60;
+
+  const ageMonths = (now - bd) / (1000 * 60 * 60 * 24 * 30.44);
   
   if(ageMonths < 1.5) return 60;
   if(ageMonths < 3) return 90;
@@ -202,27 +258,118 @@ function getWakeWindowThreshold() {
   return 240;
 }
 
+function updateWakeWindowDisplay() {
+  const badge = document.getElementById("wake-window-badge");
+  if(!badge) return;
+  
+  if(appState.isSleeping) {
+    badge.textContent = "Durmiendo...";
+    badge.className = "badge badge-optimal";
+    return;
+  }
+
+  const lastEnd = appState.lastSleepEndTime ? new Date(appState.lastSleepEndTime) : new Date();
+  const now = new Date();
+  
+  // Evitar números negativos o locuras si la fecha guardada es del futuro
+  let diffMins = Math.floor((now - lastEnd) / 60000);
+  if (isNaN(diffMins) || diffMins < 0) diffMins = 0;
+
+  const hrs = Math.floor(diffMins / 60);
+  const mins = diffMins % 60;
+  badge.textContent = `Despierto: ${hrs}h ${mins}m`;
+
+  const maxMins = getWakeWindowThreshold();
+  if(diffMins < (maxMins - 30)) badge.className = "badge badge-optimal";
+  else if(diffMins <= maxMins) badge.className = "badge badge-alert";
+  else badge.className = "badge badge-overtired";
+}
+
 function startWakeWindowTimer() {
-  setInterval(() => {
-    const badge = document.getElementById("wake-window-badge");
-    if(!badge) return;
+  updateWakeWindowDisplay(); // Ejecutar inmediatamente al cargar
+  setInterval(updateWakeWindowDisplay, 10000); // Actualizar cada 10s
+}
+
+// CONTROL DE SUEÑO Y TIMERS
+function initSleepTracker() {
+  const sleepBtn = document.getElementById("btn-toggle-sleep");
+  if(!sleepBtn) return;
+  
+  try {
+    const savedState = localStorage.getItem("leandro_sleep_state");
+    if(savedState) {
+      const data = JSON.parse(savedState);
+      appState.isSleeping = !!data.isSleeping;
+      appState.sleepStartTime = data.sleepStartTime ? new Date(data.sleepStartTime) : null;
+      if (data.lastSleepEndTime) {
+        appState.lastSleepEndTime = new Date(data.lastSleepEndTime);
+      }
+    }
+  } catch(e) {}
+
+  updateSleepUI();
+  startWakeWindowTimer();
+
+  sleepBtn.addEventListener("click", () => {
+    appState.isSleeping = !appState.isSleeping;
+    const now = new Date();
     
     if(appState.isSleeping) {
-      badge.textContent = "Durmiendo...";
-      badge.className = "badge badge-optimal";
-      return;
+      appState.sleepStartTime = now;
+    } else {
+      const start = appState.sleepStartTime || now;
+      const durationMin = Math.max(1, Math.round((now - start) / 60000));
+      saveToQueueAndState('record', {
+        id: generateUUID(),
+        timestamp: now.toISOString(),
+        categoria: "sleep",
+        subtipo: "Siesta/Sueño",
+        valor: durationMin,
+        unidad: "min",
+        fechaInicio: start.toISOString(),
+        fechaFin: now.toISOString()
+      });
+      appState.lastSleepEndTime = now;
+      appState.sleepStartTime = null;
     }
     
-    const diffMins = Math.floor((new Date() - new Date(appState.lastSleepEndTime)) / 60000);
-    const hrs = Math.floor(diffMins / 60);
-    const mins = diffMins % 60;
-    badge.textContent = `Despierto: ${hrs}h ${mins}m`;
+    saveSleepState();
+    updateSleepUI();
+    updateWakeWindowDisplay();
+  });
+}
 
-    const maxMins = getWakeWindowThreshold();
-    if(diffMins < (maxMins - 30)) badge.className = "badge badge-optimal";
-    else if(diffMins <= maxMins) badge.className = "badge badge-alert";
-    else badge.className = "badge badge-overtired";
-  }, 10000);
+function saveSleepState() {
+  try {
+    localStorage.setItem("leandro_sleep_state", JSON.stringify({
+      isSleeping: appState.isSleeping,
+      sleepStartTime: appState.sleepStartTime,
+      lastSleepEndTime: appState.lastSleepEndTime
+    }));
+  } catch(e) {}
+}
+
+function updateSleepUI() {
+  const btn = document.getElementById("btn-toggle-sleep");
+  const btnText = document.getElementById("sleep-btn-text");
+  if(appState.isSleeping) {
+    btn.className = "btn btn-sleep-stop";
+    btnText.textContent = "Finalizar Sueño";
+    if(!appState.timerInterval) appState.timerInterval = setInterval(() => {
+      if(!appState.sleepStartTime) return;
+      const diffSec = Math.floor((new Date() - appState.sleepStartTime) / 1000);
+      const h = String(Math.floor(diffSec / 3600)).padStart(2, '0');
+      const m = String(Math.floor((diffSec % 3600) / 60)).padStart(2, '0');
+      const s = String(diffSec % 60).padStart(2, '0');
+      document.getElementById("sleep-timer").textContent = `${h}:${m}:${s}`;
+    }, 1000);
+  } else {
+    btn.className = "btn btn-sleep-start";
+    btnText.textContent = "Iniciar Sueño";
+    clearInterval(appState.timerInterval);
+    appState.timerInterval = null;
+    document.getElementById("sleep-timer").textContent = "00:00:00";
+  }
 }
 
 // FORMULARIOS
@@ -384,82 +531,7 @@ function refreshTeethUI() {
   });
 }
 
-// CONTROL DE SUEÑO
-function initSleepTracker() {
-  const sleepBtn = document.getElementById("btn-toggle-sleep");
-  if(!sleepBtn) return;
-  
-  try {
-    const savedState = localStorage.getItem("leandro_sleep_state");
-    if(savedState) {
-      const data = JSON.parse(savedState);
-      appState.isSleeping = !!data.isSleeping;
-      appState.sleepStartTime = data.sleepStartTime ? new Date(data.sleepStartTime) : null;
-      appState.lastSleepEndTime = data.lastSleepEndTime ? new Date(data.lastSleepEndTime) : new Date();
-    }
-  } catch(e) {}
-
-  updateSleepUI();
-  startWakeWindowTimer();
-
-  sleepBtn.addEventListener("click", () => {
-    appState.isSleeping = !appState.isSleeping;
-    const now = new Date();
-    
-    if(appState.isSleeping) {
-      appState.sleepStartTime = now;
-    } else {
-      const start = appState.sleepStartTime || now;
-      const durationMin = Math.max(1, Math.round((now - start) / 60000));
-      saveToQueueAndState('record', {
-        id: generateUUID(),
-        timestamp: now.toISOString(),
-        categoria: "sleep",
-        subtipo: "Siesta/Sueño",
-        valor: durationMin,
-        unidad: "min",
-        fechaInicio: start.toISOString(),
-        fechaFin: now.toISOString()
-      });
-      appState.lastSleepEndTime = now;
-      appState.sleepStartTime = null;
-    }
-    
-    try {
-      localStorage.setItem("leandro_sleep_state", JSON.stringify({
-        isSleeping: appState.isSleeping,
-        sleepStartTime: appState.sleepStartTime,
-        lastSleepEndTime: appState.lastSleepEndTime
-      }));
-    } catch(e) {}
-    updateSleepUI();
-  });
-}
-
-function updateSleepUI() {
-  const btn = document.getElementById("btn-toggle-sleep");
-  const btnText = document.getElementById("sleep-btn-text");
-  if(appState.isSleeping) {
-    btn.className = "btn btn-sleep-stop";
-    btnText.textContent = "Finalizar Sueño";
-    if(!appState.timerInterval) appState.timerInterval = setInterval(() => {
-      if(!appState.sleepStartTime) return;
-      const diffSec = Math.floor((new Date() - appState.sleepStartTime) / 1000);
-      const h = String(Math.floor(diffSec / 3600)).padStart(2, '0');
-      const m = String(Math.floor((diffSec % 3600) / 60)).padStart(2, '0');
-      const s = String(diffSec % 60).padStart(2, '0');
-      document.getElementById("sleep-timer").textContent = `${h}:${m}:${s}`;
-    }, 1000);
-  } else {
-    btn.className = "btn btn-sleep-start";
-    btnText.textContent = "Iniciar Sueño";
-    clearInterval(appState.timerInterval);
-    appState.timerInterval = null;
-    document.getElementById("sleep-timer").textContent = "00:00:00";
-  }
-}
-
-// RESTO DE FUNCIONES
+// MODO NOCTURNO Y TABS
 function initNightMode() {
   const btn = document.getElementById("btn-night-mode");
   if(localStorage.getItem("leandro_night_mode") === "true") document.body.classList.add("night-mode");
@@ -513,7 +585,6 @@ function updateHydrationWidget() {
   }
 }
 
-// RENDER TIMELINE (CON BOTÓN DE BORRADO 🗑️)
 function renderTimeline() {
   const container = document.getElementById("timeline-bar");
   const list = document.getElementById("timeline-log-list");
@@ -543,7 +614,6 @@ function renderTimeline() {
     block.style.width = `${widthPct}%`;
     container.appendChild(block);
 
-    // Fila del registro en la lista
     const item = document.createElement("div");
     item.className = "text-sm";
     item.style.padding = "8px 0";
@@ -559,7 +629,6 @@ function renderTimeline() {
     const textSpan = document.createElement("span");
     textSpan.innerHTML = `<strong>${start.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</strong> - ${subtipo} ${valor ? `(${valor} ${unidad})` : ''}`;
 
-    // Botón de borrado
     const delBtn = document.createElement("button");
     delBtn.innerHTML = "🗑️";
     delBtn.style.background = "none";
