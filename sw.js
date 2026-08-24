@@ -1,14 +1,13 @@
-const CACHE_NAME = 'leandro-app-v2';
+const CACHE_NAME = 'leandro-app-v3';
 const ASSETS = [
   './',
   './index.html',
   './styles.css',
   './app.js',
-  './manifest.json',
-  'https://cdn.jsdelivr.net/npm/chart.js'
+  './manifest.json'
 ];
+// NOTA: Chart.js eliminado del precache inicial para que no bloquee la instalación si la red falla.
 
-// Instalación inmediata del nuevo Service Worker
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
@@ -16,7 +15,6 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Borrado de cachés antiguas al activar la nueva versión
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
@@ -30,21 +28,24 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Estrategia Network First: Intenta descargar de red; si no hay conexión, usa caché
+// Estrategia Stale-While-Revalidate para recursos locales (más rápida).
+// Las peticiones a APIs y scripts externos usan caché solo si no hay red.
 self.addEventListener('fetch', (event) => {
   if (event.request.url.includes('script.google.com')) return;
 
   event.respondWith(
-    fetch(event.request)
-      .then((networkResponse) => {
-        if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+    caches.match(event.request).then((cachedResponse) => {
+      const fetchPromise = fetch(event.request).then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200 && (networkResponse.type === 'basic' || networkResponse.type === 'cors')) {
           const responseClone = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseClone);
-          });
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
         }
         return networkResponse;
-      })
-      .catch(() => caches.match(event.request))
+      }).catch(() => {
+        // Fallo de red silencioso (se sirve la caché)
+      });
+      
+      return cachedResponse || fetchPromise;
+    })
   );
 });
