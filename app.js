@@ -44,8 +44,8 @@ document.addEventListener("visibilitychange", () => {
     loadData();
   }
 });
-setInterval(processSyncQueue, 30000); // Intenta enviar cola pendiente cada 30s
-setInterval(loadData, 60000);
+setInterval(processSyncQueue, 15000); // Intenta enviar cola pendiente cada 15s
+setInterval(loadData, 30000); // Actualiza datos cada 30s
 
 // AJUSTES Y SEGURIDAD (URL Oculta y Fecha Nacimiento)
 function initSettings() {
@@ -103,7 +103,8 @@ async function loadData() {
     const cachedLogs = localStorage.getItem("leandro_logs");
     if(cachedLogs) {
       appState.logs = JSON.parse(cachedLogs);
-      renderTimeline(); updateHydrationWidget();
+      renderTimeline(); 
+      updateHydrationWidget();
     }
   } catch(e) {}
 
@@ -115,10 +116,16 @@ async function loadData() {
     const json = await res.json();
     
     if(json.records) {
-      // Deduplicación basada en UUID (id) en lugar de fechas inestables
+      // Deduplicación basada en UUID (id)
       const remoteKeys = new Set(json.records.map(r => r.id));
       const unsyncedLocal = appState.logs.filter(l => !remoteKeys.has(l.id) && syncQueue.records.find(q => q.id === l.id));
+      
+      // Asegurarse de que los registros remotos mantengan su formato correcto y fusionar
       appState.logs = [...json.records, ...unsyncedLocal];
+      
+      // Ordenar por fecha para que el timeline sea coherente
+      appState.logs.sort((a, b) => new Date(a.fechaInicio) - new Date(b.fechaInicio));
+
       localStorage.setItem("leandro_logs", JSON.stringify(appState.logs));
     }
     if(json.growth) appState.growth = json.growth;
@@ -127,7 +134,9 @@ async function loadData() {
     renderTimeline();
     updateHydrationWidget();
     refreshTeethUI();
-    if(document.querySelector(".tab-btn.active")?.dataset.tab === 'tab-stats') renderCharts();
+    if(document.querySelector(".tab-btn.active")?.dataset.tab === 'tab-stats') {
+        renderCharts();
+    }
   } catch(err) {
     console.warn("Usando caché offline.");
   }
@@ -263,8 +272,7 @@ function extractFormData(type) {
   if(side) subtipoStr += ` (${side.value})`;
 
   const now = new Date();
-  // Para evitar que los reportes cambien de día al verlos en otro huso horario, 
-  // podríamos enviarlo crudo o fiarnos del frontend. Se envía como ISO string.
+  
   return {
     id: generateUUID(),
     timestamp: now.toISOString(),
@@ -486,12 +494,15 @@ function renderTimeline() {
   container.innerHTML = ""; list.innerHTML = "";
   const todayStr = new Date().toDateString();
   const todayLogs = appState.logs.filter(l => {
-    const d = new Date(l.fechaInicio || l.fechainicio);
+    // IMPORTANTE: Asegurar que tome el campo correcto independientemente de mayúsculas
+    const dateStr = l.fechaInicio || l.fechainicio || l.FechaInicio;
+    const d = new Date(dateStr);
     return !isNaN(d) && d.toDateString() === todayStr;
   });
 
   todayLogs.forEach(log => {
-    const start = new Date(log.fechaInicio || log.fechainicio);
+    const dateStr = log.fechaInicio || log.fechainicio || log.FechaInicio;
+    const start = new Date(dateStr);
     const startMins = start.getHours() * 60 + start.getMinutes();
     const leftPct = (startMins / 1440) * 100;
     
@@ -499,7 +510,9 @@ function renderTimeline() {
     const widthPct = Math.max((durationMins / 1440) * 100, 1.5);
 
     const block = document.createElement("div");
-    block.className = `timeline-block bg-${log.categoria || 'activity'}`;
+    // Corrección para que la clase bg no falle si la categoría viene en mayúscula
+    const cat = (log.categoria || log.Categoria || 'activity').toLowerCase();
+    block.className = `timeline-block bg-${cat}`;
     block.style.left = `${leftPct}%`;
     block.style.width = `${widthPct}%`;
     container.appendChild(block);
@@ -508,7 +521,12 @@ function renderTimeline() {
     item.className = "text-sm";
     item.style.padding = "6px 0";
     item.style.borderBottom = "1px solid var(--border-color)";
-    item.innerHTML = `<strong>${start.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</strong> - ${log.subtipo} ${log.valor ? `(${log.valor} ${log.unidad})` : ''}`;
+    
+    const subtipo = log.subtipo || log.Subtipo || '';
+    const valor = log.valor || log.Valor;
+    const unidad = log.unidad || log.Unidad;
+
+    item.innerHTML = `<strong>${start.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</strong> - ${subtipo} ${valor ? `(${valor} ${unidad})` : ''}`;
     list.appendChild(item);
   });
 }
@@ -573,5 +591,80 @@ function initPediatricExporter() {
 }
 
 function renderCharts() {
-  // Simplificado para la generación
+  if(typeof Chart === 'undefined') return;
+
+  const ctxSleep = document.getElementById("chart-sleep")?.getContext("2d");
+  const ctxFeed = document.getElementById("chart-feeding")?.getContext("2d");
+  const ctxDiapers = document.getElementById("chart-diapers")?.getContext("2d");
+
+  const days = [];
+  const sleepHours = [0,0,0,0,0,0,0];
+  const feedVol = [0,0,0,0,0,0,0];
+  let diaperCounts = { Pis: 0, Caca: 0, Mixto: 0 };
+
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    days.push(d.toLocaleDateString('es-ES', { weekday: 'short' }));
+  }
+
+  const now = new Date();
+  appState.logs.forEach(log => {
+    const dateStr = log.fechaInicio || log.fechainicio || log.FechaInicio;
+    const logDate = new Date(dateStr);
+    if(isNaN(logDate)) return;
+    
+    // Normalizar a medianoche local para contar los días correctamente
+    const diffTime = Math.abs(now.setHours(0,0,0,0) - logDate.setHours(0,0,0,0));
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+
+    if (diffDays >= 0 && diffDays < 7) {
+      const dayIdx = 6 - diffDays;
+      
+      const cat = (log.categoria || log.Categoria || '').toLowerCase();
+      const subtipo = log.subtipo || log.Subtipo || '';
+      const unidad = log.unidad || log.Unidad || '';
+      const valor = log.valor || log.Valor;
+      
+      if (cat === 'sleep') {
+        sleepHours[dayIdx] += (parseFloat(valor) || 0) / 60;
+      }
+      if (cat === 'feed' && unidad === 'ml') {
+        feedVol[dayIdx] += parseFloat(valor) || 0;
+      }
+      if (cat === 'hygiene' && subtipo.includes('Panal')) {
+        if (subtipo.includes('Pis')) diaperCounts.Pis++;
+        else if (subtipo.includes('Caca')) diaperCounts.Caca++;
+        else if (subtipo.includes('Mixto')) diaperCounts.Mixto++;
+      }
+    }
+  });
+
+  if(chartSleepInst) chartSleepInst.destroy();
+  if(chartFeedInst) chartFeedInst.destroy();
+  if(chartDiaperInst) chartDiaperInst.destroy();
+
+  if(ctxSleep) {
+    chartSleepInst = new Chart(ctxSleep, {
+      type: 'bar',
+      data: { labels: days, datasets: [{ label: 'Horas de Sueño', data: sleepHours.map(h => h.toFixed(1)), backgroundColor: '#3b82f6' }] },
+      options: { responsive: true, plugins: { legend: { display: false } } }
+    });
+  }
+
+  if(ctxFeed) {
+    chartFeedInst = new Chart(ctxFeed, {
+      type: 'line',
+      data: { labels: days, datasets: [{ label: 'Volumen Biberón (ml)', data: feedVol, borderColor: '#10b981', fill: false }] },
+      options: { responsive: true }
+    });
+  }
+
+  if(ctxDiapers) {
+    chartDiaperInst = new Chart(ctxDiapers, {
+      type: 'doughnut',
+      data: { labels: ['Pis', 'Caca', 'Mixto'], datasets: [{ data: [diaperCounts.Pis, diaperCounts.Caca, diaperCounts.Mixto], backgroundColor: ['#3b82f6', '#f97316', '#eab308'] }] },
+      options: { responsive: true }
+    });
+  }
 }
