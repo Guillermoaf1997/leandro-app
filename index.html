@@ -13,11 +13,11 @@
 </head>
 <body>
   <div class="app-container">
-    <!-- Header & Control de Sueño Activo -->
     <header class="app-header">
       <div class="header-title">
         <h1>Leandro App 👶</h1>
         <div class="header-controls">
+          <button id="btn-settings" class="icon-btn" title="Ajustes">⚙️</button>
           <button id="btn-night-mode" class="icon-btn" title="Modo Toma Nocturna">🔴</button>
           <span id="wake-window-badge" class="badge badge-optimal">Despierto: 0h 0m</span>
         </div>
@@ -33,7 +33,6 @@
       </div>
     </header>
 
-    <!-- Navigation Tabs -->
     <nav class="nav-tabs">
       <button class="tab-btn active" data-tab="tab-quick">Registro</button>
       <button class="tab-btn" data-tab="tab-timeline">Línea del Día</button>
@@ -42,10 +41,8 @@
     </nav>
 
     <main class="main-content">
-      <!-- TAB 1: REGISTRO RÁPIDO & WIDGETS NOCTURNOS -->
+      <!-- TAB 1: REGISTRO RÁPIDO -->
       <section id="tab-quick" class="tab-content active">
-        
-        <!-- WIDGET 1: SEMÁFORO DE HIDRATACIÓN -->
         <div class="card widget-card">
           <div class="widget-header">
             <h3>💧 Semáforo de Hidratación</h3>
@@ -57,7 +54,6 @@
           <p id="hydration-status" class="text-sm text-muted">Objetivo recién nacido: 6 pañales mojados hoy</p>
         </div>
 
-        <!-- WIDGET 2: REPRODUCTOR DE RUIDO BLANCO / ÚTERO -->
         <div class="card widget-card">
           <h3>🔊 Sonidos Calmantes</h3>
           <div class="noise-controls">
@@ -84,7 +80,7 @@
           <h3>🧷 Higiene y Salud</h3>
           <div class="grid-matrix">
             <button class="action-btn" data-type="Panal"><span>🧷</span>Pañal</button>
-            <button class="action-btn" data-type="Orinal"><span>Toilet</span>Orinal</button>
+            <button class="action-btn" data-type="Orinal"><span>🚽</span>Orinal</button>
             <button class="action-btn" data-type="Bano"><span>🧼</span>Baño</button>
             <button class="action-btn" data-type="Dientes"><span>🪥</span>Cepillado</button>
             <button class="action-btn" data-type="Medicamento"><span>💊</span>Medicina</button>
@@ -107,7 +103,7 @@
         </div>
       </section>
 
-      <!-- TAB 2: TIMELINE (24 HORAS) -->
+      <!-- TAB 2: TIMELINE -->
       <section id="tab-timeline" class="tab-content">
         <div class="card">
           <h3>Visualización 24 Horas</h3>
@@ -128,7 +124,7 @@
         </div>
       </section>
 
-      <!-- TAB 3: DESARROLLO CORPORAL Y DENTICIÓN -->
+      <!-- TAB 3: DESARROLLO -->
       <section id="tab-growth" class="tab-content">
         <div class="card">
           <h3>Antropometría</h3>
@@ -139,11 +135,11 @@
             </div>
             <div class="form-group">
               <label>Talla (cm)</label>
-              <input type="number" id="growth-height" step="0.1" placeholder="Ej. 50.0" required>
+              <input type="number" id="growth-height" step="0.1" placeholder="Ej. 50.0">
             </div>
             <div class="form-group">
               <label>Perímetro Cefálico (cm)</label>
-              <input type="number" id="growth-head" step="0.1" placeholder="Ej. 35.0" required>
+              <input type="number" id="growth-head" step="0.1" placeholder="Ej. 35.0">
             </div>
             <button type="submit" class="btn btn-primary">Guardar Medición</button>
           </form>
@@ -151,12 +147,12 @@
 
         <div class="card">
           <h3>Mapa de Dentición</h3>
-          <p class="text-sm text-muted">Pulsa una pieza dental para registrar su brote</p>
+          <p class="text-sm text-muted">Pulsa una pieza dental para registrar su brote y sincronizarlo.</p>
           <div class="teeth-map" id="teeth-map"></div>
         </div>
       </section>
 
-      <!-- TAB 4: ESTADÍSTICAS & INFORME PEDIATRA -->
+      <!-- TAB 4: ESTADÍSTICAS -->
       <section id="tab-stats" class="tab-content">
         <div class="card" style="text-align: center;">
           <button id="btn-export-report" class="btn btn-primary btn-full">📋 Exportar Ficha para Pediatra</button>
@@ -177,10 +173,31 @@
     </main>
   </div>
 
+  <!-- MODAL DE AJUSTES -->
+  <div id="settings-modal" class="modal">
+    <div class="modal-content">
+      <span class="modal-close" id="settings-close">&times;</span>
+      <h3>⚙️ Ajustes de la App</h3>
+      <form id="settings-form">
+        <div class="form-group">
+          <label>URL de Apps Script (API Secreta)</label>
+          <input type="password" id="set-api-url" placeholder="https://script.google.com/..." required>
+          <p class="text-sm text-muted">Añade aquí el enlace de tu despliegue para proteger tus datos de accesos públicos.</p>
+        </div>
+        <div class="form-group">
+          <label>Fecha de Nacimiento del Bebé</label>
+          <input type="date" id="set-birthdate">
+          <p class="text-sm text-muted">Necesario para adaptar automáticamente las alertas de ventanas de sueño.</p>
+        </div>
+        <button type="submit" class="btn btn-primary btn-full" style="margin-top:16px;">Guardar y Sincronizar</button>
+      </form>
+    </div>
+  </div>
+
   <!-- MODAL DE CAPTURA RÁPIDA -->
   <div id="action-modal" class="modal">
     <div class="modal-content">
-      <span class="modal-close">&times;</span>
+      <span class="modal-close" id="action-close">&times;</span>
       <h3 id="modal-title">Registrar Evento</h3>
       <form id="modal-form">
         <input type="hidden" id="modal-type">
