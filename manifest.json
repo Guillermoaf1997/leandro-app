@@ -1,7 +1,7 @@
 {
   "name": "Leandro App - Seguimiento Infantil",
   "short_name": "Leandro",
-  "description": "Progressive Web App para el seguimiento diario de la rutina, salud, alérgenos, herramientas BLW, percentiles OMS y desarrollo.",
+  "description": "Progressive Web App para el seguimiento diario de la rutina, salud, alérgenos, herramientas BLW, IA Pediátrica y percentiles OMS.",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#f8fafc",
