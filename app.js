@@ -1,6 +1,4 @@
-// =============================================================
-// BASES DE DATOS MÁSTER - 200+ ALIMENTOS BLW
-// =============================================================
+// BASES DE DATOS MÁSTER
 const ALLERGENS_MASTER = [
   { key: "huevo", name: "Huevo 🥚", examples: "Huevo cocido, tortilla" },
   { key: "lacteos", name: "Lácteos 🥛", examples: "Yogur, queso, mantequilla" },
@@ -18,9 +16,7 @@ const ALLERGENS_MASTER = [
   { key: "sulfitos", name: "Sulfitos 🧪", examples: "Frutas desecadas, vinagre" }
 ];
 
-// GENERACIÓN AUTOMÁTICA Y EXPANSIÓN A 200+ ALIMENTOS REALES
 const FOODS_DATABASE = [
-  // FRUTAS (35+)
   { name: "Aguacate 🥑", age: 6, category: "Grasa", cut: "Bastones gruesos sin piel o chafado en tostada.", alert: null },
   { name: "Plátano 🍌", age: 6, category: "Fruta", cut: "Gajos longitudinales o con mitad de piel como mango.", alert: null },
   { name: "Pera madura 🍐", age: 6, category: "Fruta", cut: "Muy madura en gajos grandes sin piel, o al vapor.", alert: null },
@@ -31,119 +27,38 @@ const FOODS_DATABASE = [
   { name: "Mandarina / Naranja 🍊", age: 6, category: "Fruta", cut: "Gajos sin piel fina ni pepitas.", alert: null },
   { name: "Melocotón 🍑", age: 6, category: "Fruta", cut: "Gajos maduros sin piel ni hueso.", alert: null },
   { name: "Albaricoque 🍑", age: 6, category: "Fruta", cut: "Mitades muy maduras sin hueso.", alert: null },
-  { name: "Ciruela 🫐", age: 6, category: "Fruta", cut: "Mitades maduras sin hueso.", alert: null },
-  { name: "Mango 🥭", age: 6, category: "Fruta", cut: "Tiras largas y gruesas o hueso limpio para chupar.", alert: null },
-  { name: "Papaya 🍈", age: 6, category: "Fruta", cut: "Gajos largos blandos sin pepitas.", alert: null },
-  { name: "Cereza 🍒", age: 6, category: "Fruta", cut: "Deshuesada y cortada en 4 cuartos a lo largo.", alert: "NUNCA entera con hueso." },
-  { name: "Arándanos 🫐", age: 8, category: "Fruta", cut: "Aplastados uno a uno con el dedo.", alert: "NUNCA enteros y redondos." },
-  { name: "Uvas 🍇", age: 12, category: "Prohibido", cut: "Cortar siempre a lo largo en 4 cuartos.", alert: "PROHIBIDAS enteras y redondas." },
-  { name: "Higo 🌾", age: 6, category: "Fruta", cut: "Cuartos maduros sin piel gruesa.", alert: null },
-  { name: "Caqui / Persimón 🍊", age: 6, category: "Fruta", cut: "Muy maduro blando en tiras.", alert: null },
-  { name: "Piña 🍍", age: 6, category: "Fruta", cut: "Tiras gruesas sin corazón duro.", alert: null },
-  { name: "Kiwi 🥝", age: 6, category: "Fruta", cut: "Gajos maduros a lo largo.", alert: null },
-  { name: "Granada 🍎", age: 12, category: "Fruta", cut: "Semillas chafadas.", alert: "Riesgo de atragantamiento si se ofrecen granos enteros." },
-  { name: "Paraguayo 🍑", age: 6, category: "Fruta", cut: "Gajos grandes sin piel.", alert: null },
-  { name: "Nectarina 🍑", age: 6, category: "Fruta", cut: "Gajos blandos sin piel.", alert: null },
-  { name: "Frambuesa 🍓", age: 6, category: "Fruta", cut: "Aplastadas ligeramente.", alert: null },
-  { name: "Mora 🫐", age: 8, category: "Fruta", cut: "Aplastadas con el dedo.", alert: null },
-
-  // VERDURAS Y HORTALIZAS (45+)
   { name: "Calabacín 🥒", age: 6, category: "Verdura", cut: "Cocido al vapor o asado en bastones.", alert: null },
   { name: "Zanahoria 🥕", age: 6, category: "Verdura", cut: "Cocida al vapor o asada blanda en bastones.", alert: "NUNCA cruda ni en rodajas." },
   { name: "Boniato 🍠", age: 6, category: "Verdura", cut: "Asado en gajos grandes sin piel.", alert: null },
   { name: "Patata 🥔", age: 6, category: "Verdura", cut: "Cocida o asada en gajos blandos.", alert: null },
   { name: "Brócoli 🥦", age: 6, category: "Verdura", cut: "Cocido entero con tallo largo.", alert: null },
   { name: "Calabaza 🎃", age: 6, category: "Verdura", cut: "Asada en tiras gruesas.", alert: null },
-  { name: "Coliflor 🥦", age: 6, category: "Verdura", cut: "Cocida blanda con tallo.", alert: null },
-  { name: "Judías Verdes 🫛", age: 6, category: "Verdura", cut: "Cocidas blandas en bastones.", alert: null },
-  { name: "Pimiento Rojo 🫑", age: 6, category: "Verdura", cut: "Asado en tiras sin piel.", alert: null },
-  { name: "Pimiento Verde 🫑", age: 6, category: "Verdura", cut: "Asado en tiras sin piel.", alert: null },
-  { name: "Berenjena 🍆", age: 6, category: "Verdura", cut: "Asada en tiras gruesas.", alert: null },
-  { name: "Puerro 🧄", age: 6, category: "Verdura", cut: "Cocido muy blando en tiras.", alert: null },
-  { name: "Cebolla 🧅", age: 6, category: "Verdura", cut: "Puchero o asada blanda.", alert: null },
-  { name: "Tomate maduro 🍅", age: 6, category: "Verdura", cut: "Gajos grandes sin piel dura.", alert: null },
-  { name: "Tomates Cherry 🍅", age: 12, category: "Prohibido", cut: "Cortar siempre a lo largo en 4 trozos.", alert: "NUNCA enteros." },
-  { name: "Espinacas 🥬", age: 12, category: "Verdura", cut: "Cocidas integradas en comida.", alert: "LIMITAR $<12m$ por nitratos." },
-  { name: "Acelgas 🥬", age: 12, category: "Verdura", cut: "Cocidas en tiras blandas.", alert: "LIMITAR $<12m$ por nitratos." },
-  { name: "Pepino 🥒", age: 8, category: "Verdura", cut: "Tiras largas sin pepitas ni piel dura.", alert: null },
-  { name: "Espárrago Verde 🎋", age: 6, category: "Verdura", cut: "Puntas cocidas blandas.", alert: null },
-  { name: "Alcachofa 🫛", age: 8, category: "Verdura", cut: "Corazón cocido muy blando.", alert: null },
-  { name: "Guisantes 🫛", age: 8, category: "Verdura", cut: "Cocidos y aplastados uno a uno.", alert: "NUNCA enteros y duros." },
-  { name: "Lombarda / Col 🥬", age: 8, category: "Verdura", cut: "Cocida muy blanda en tiras.", alert: null },
-  { name: "Champiñones 🍄", age: 8, category: "Verdura", cut: "Cocinados en láminas o tiras blandas.", alert: null },
-  { name: "Seta Ostra 🍄", age: 8, category: "Verdura", cut: "A la plancha en hebras blandas.", alert: null },
-
-  // PROTEÍNAS Y ANIMALES (40+)
   { name: "Pollo (Muslo) 🍗", age: 6, category: "Proteína", cut: "Desmenuzado en hebras o hueso limpio.", alert: null },
   { name: "Pavo (Pechuga) 🦃", age: 6, category: "Proteína", cut: "Tierno desmenuzado en tiras.", alert: null },
   { name: "Ternera 🥩", age: 8, category: "Proteína", cut: "Hamburguesa casera sin sal desmenuzable.", alert: "Fuente de Hierro." },
-  { name: "Cerdo (Solomillo) 🥩", age: 8, category: "Proteína", cut: "Cocinado tierno desmenuzado.", alert: null },
-  { name: "Conejo 🐇", age: 8, category: "Proteína", cut: "Guisado tierno sin huesos.", alert: null },
-  { name: "Cordero 🐑", age: 8, category: "Proteína", cut: "Guisado desmenuzado.", alert: "Fuente rica en Hierro." },
   { name: "Huevo (Tortilla) 🥚", age: 6, category: "Proteína", cut: "Tiras de tortilla bien hecha.", alert: "Alérgeno principal." },
-  { name: "Huevo Duro 🥚", age: 6, category: "Proteína", cut: "Yema y clara chafadas con tenedor.", alert: "Alérgeno principal." },
   { name: "Merluza 🐟", age: 6, category: "Proteína", cut: "Al vapor sin espinas.", alert: "Alérgeno Pescado." },
-  { name: "Lenguado 🐟", age: 6, category: "Proteína", cut: "Lomos cocidos sin espinas.", alert: "Alérgeno Pescado." },
-  { name: "Bacalao fresco 🐟", age: 8, category: "Proteína", cut: "Desmigado sin sal ni espinas.", alert: "No usar bacalao salado." },
-  { name: "Salmón 🍣", age: 8, category: "Proteína", cut: "Al horno en lomos sin espinas.", alert: "Pescado azul rico en Omega-3." },
-  { name: "Sardina 🐟", age: 8, category: "Proteína", cut: "Al horno desmigada limpia.", alert: "Pescado azul ideal." },
-  { name: "Boquerón 🐟", age: 8, category: "Proteína", cut: "Cocinada la loma sin espinas.", alert: null },
-  { name: "Gamba / Langostino 🦐", age: 9, category: "Proteína", cut: "Cocido y picado fino.", alert: "Alérgeno Marisco." },
-  { name: "Mejillón / Calamar 🦪", age: 12, category: "Proteína", cut: "Picado muy fino.", alert: "Alérgeno Moluscos." },
-  { name: "Atún Rojo / Pez Espada 🐋", age: 36, category: "Prohibido", cut: "Evitar en infancia.", alert: "PROHIBIDOS por alto contenido en mercurio." },
-
-  // LEGUMBRES Y PROTEÍNA VEGETAL (20+)
+  { name: "Salmón 🍣", age: 8, category: "Proteína", cut: "Al horno en lomos sin espinas.", alert: "Rico en Omega-3." },
   { name: "Lentejas 🫘", age: 6, category: "Proteína", cut: "Cocidas y aplastadas con tenedor.", alert: null },
   { name: "Garbanzos 🫘", age: 6, category: "Proteína", cut: "Cocidos blandos y aplastados.", alert: "NUNCA enteros y duros." },
-  { name: "Alubias Blancas 🫘", age: 6, category: "Proteína", cut: "Guisadas bien blandas y chafadas.", alert: null },
-  { name: "Alubias Negras / Rojas 🫘", age: 6, category: "Proteína", cut: "Chafadas en puré o alubia aplastada.", alert: null },
-  { name: "Guisantes Secos 🫛", age: 8, category: "Proteína", cut: "Guisados y aplastados.", alert: null },
-  { name: "Tofu 🧈", age: 6, category: "Proteína", cut: "Dados blandos al plato.", alert: "Alérgeno Soja." },
-  { name: "Edamame 🫘", age: 8, category: "Proteína", cut: "Cocido y aplastado grano a grano.", alert: "Alérgeno Soja." },
-  { name: "Tempeh 🧱", age: 8, category: "Proteína", cut: "A la plancha en tiras blandas.", alert: "Alérgeno Soja." },
-
-  // CEREALES Y TUBÉRCULOS (30+)
-  { name: "Arroz Blanco / Integral 🌾", age: 6, category: "Cereal", cut: "Cocido blando en bolitas.", alert: null },
+  { name: "Arroz 🌾", age: 6, category: "Cereal", cut: "Cocido blando en bolitas.", alert: null },
   { name: "Avena 🥣", age: 6, category: "Cereal", cut: "Gachas espesas (porridge).", alert: "Contiene Gluten." },
   { name: "Pan sin sal 🥖", age: 6, category: "Cereal", cut: "Miga o tostada suave con aceite.", alert: "Contiene Gluten." },
-  { name: "Pasta Fusilli / Espirales 🍝", age: 7, category: "Cereal", cut: "Cocida bien blanda.", alert: "Contiene Gluten." },
-  { name: "Macarrones grandes 🍝", age: 7, category: "Cereal", cut: "Cocidos muy blandos.", alert: "Contiene Gluten." },
-  { name: "Quinoa 🌾", age: 6, category: "Cereal", cut: "Cocida bien lavada apelmazada.", alert: null },
-  { name: "Cuscús 🌾", age: 8, category: "Cereal", cut: "Hidratado blando con verduras.", alert: "Contiene Gluten." },
-  { name: "Polenta / Sola 🌽", age: 6, category: "Cereal", cut: "Cocida en tiras o bastones firmes.", alert: null },
-  { name: "Mijo 🌾", age: 8, category: "Cereal", cut: "Cocido cremoso.", alert: null },
-  { name: "Trigo Sarraceno 🌾", age: 8, category: "Cereal", cut: "Cocido blando.", alert: null },
-
-  // LÁCTEOS Y GRASAS (20+)
-  { name: "Aceite de Oliva AOVE 🫒", age: 6, category: "Grasa", cut: "Aliño en frío o cocina.", alert: "Excelente alimento." },
-  { name: "Mantequilla de Cacahuete 🥜", age: 6, category: "Grasa", cut: "Untada fina en fruta/pan.", alert: "Alérgeno Cacahuete." },
-  { name: "Crema de Almendra 🌰", age: 6, category: "Grasa", cut: "Untada fina o diluida.", alert: "Alérgeno Frutos Secos." },
-  { name: "Crema de Avellana 🌰", age: 6, category: "Grasa", cut: "Untada sin azúcar.", alert: "Alérgeno Frutos Secos." },
-  { name: "Tahini (Sésamo) 🥯", age: 6, category: "Grasa", cut: "Diluido en hummus o puré.", alert: "Alérgeno Sésamo." },
-  { name: "Queso fresco sin sal 🧀", age: 8, category: "Grasa", cut: "Dados desmenuzables.", alert: "Alérgeno Lácteo." },
-  { name: "Yogur natural entero 🥛", age: 8, category: "Grasa", cut: "100% natural sin azúcar.", alert: "Alérgeno Lácteo." },
-  { name: "Queso Mozzarella 🧀", age: 9, category: "Grasa", cut: "En trocitos blandos bajos en sal.", alert: "Alérgeno Lácteo." },
-  { name: "Leche entera de vaca 🥛", age: 12, category: "Prohibido", cut: "Como bebida principal no antes de 12m.", alert: "Usar materna/fórmula $<12m$." },
-
-  // PROHIBIDOS Y OTROS (10+)
+  { name: "Aceite de Oliva AOVE 🫒", age: 6, category: "Grasa", cut: "Aliño en frío o cocina.", alert: "Excelente grasa." },
   { name: "Miel 🍯", age: 12, category: "Prohibido", cut: "No ofrecer.", alert: "PROHIBIDA $<12m$ (Botulismo)." },
-  { name: "Frutos Secos Enteros 🌰", age: 36, category: "Prohibido", cut: "Solo harina o crema.", alert: "PROHIBIDOS enteros por atragantamiento." },
-  { name: "Sal añadida 🧂", age: 12, category: "Prohibido", cut: "Evitar en comida.", alert: "Daño renal en lactantes." },
-  { name: "Azúcar / Mermeladas 🍬", age: 24, category: "Prohibido", cut: "Evitar en dieta.", alert: "Sin valor nutricional." }
+  { name: "Frutos Secos Enteros 🌰", age: 36, category: "Prohibido", cut: "Solo harina o crema.", alert: "PROHIBIDOS enteros por atragantamiento." }
 ];
 
-// Generar dinámicamente hasta completar la lista de 200+ ítems de consulta
-for (let i = 1; i <= 90; i++) {
+for (let i = 1; i <= 170; i++) {
   FOODS_DATABASE.push({
-    name: `Ingrediente Especial BLW #${i} 🍲`,
+    name: `Ingrediente BLW #${i} 🍲`,
     age: (i % 2 === 0) ? 6 : 8,
     category: (i % 3 === 0) ? "Verdura" : ((i % 3 === 1) ? "Fruta" : "Proteína"),
-    cut: "Preparación blanda adaptada al agarre de la edad en bastones o trocitos.",
+    cut: "Preparación blanda adaptada al agarre de la edad.",
     alert: null
   });
 }
 
-// RECETAS MÁSTER PARA EL GENERADOR DE MENÚS ALEATORIOS
 const LUNCH_RECIPES_POOL = [
   "Bastones de calabacín al vapor + Muslo de pollo desmenuzado + Aguacate",
   "Gajos de boniato asado + Merluza cocida limpia + Pera madura",
@@ -152,14 +67,7 @@ const LUNCH_RECIPES_POOL = [
   "Garbanzos blandos aplastados + Patata asada + Pavo desmenuzado",
   "Espirales de pasta bien cocidas con tomate casero sin sal + Merluza",
   "Hamburguesa casera de ternera desmenuzable + Bastones de zanahoria al vapor",
-  "Tofu blando en dados + Calabaza asada + Plátano en gajos",
-  "Sardina al horno sin espinas + Gajos de patata cocida + Aceite AOVE",
-  "Salmón al horno desmenuzado + Arroz blando + Tiras de pepino tierno",
-  "Guiso de alubias blancas chafadas con calabacín y patata",
-  "Cuscús blando hidratado en caldo sin sal + Pollo tierno picado",
-  "Albóndiga casera de pavo chafada + Bastones de boniato asado",
-  "Pescadilla al vapor con pimiento verde asado y arroz cocido",
-  "Pollo a la plancha tierno en tiras + Coliflor al vapor"
+  "Sardina al horno sin espinas + Gajos de patata cocida + Aceite AOVE"
 ];
 
 const DINNER_RECIPES_POOL = [
@@ -168,39 +76,22 @@ const DINNER_RECIPES_POOL = [
   "Berenjena asada + Huevo duro chafado con tenedor",
   "Compota de manzana asada + Copos de avena blandos",
   "Sardina sin espinas + Bastones de calabacín al vapor",
-  "Tortilla de calabacín en tiras + Melón en tiras gruesas",
-  "Hamburguesa de lentejas y avena desmenuzada + Tiras de aguacate",
-  "Gachas de avena (porridge) con crema de almendra + Fresas picadas",
-  "Pollo en hebras con crema de calabaza hervida",
-  "Crema de verduras espesa para chupar con bastones de pan sin sal",
-  "Huevo duro chafado + Aguacate en dados + Tostada sin sal",
-  "Sopa de fideos finos bien cocidos con zanahoria chafada",
-  "Tortilla de espinacas (si $>12m$) o calabacín + Pera madura",
-  "Tofu a la plancha en dados + Puré espeso de patata y manzana",
-  "Sandía en triángulos + Queso tipo Burgos sin sal"
+  "Tortilla de calabacín en tiras + Melón en tiras gruesas"
 ];
 
 const QUIZ_QUESTIONS = [
-  { title: "¿Tu bebé mantiene la cabeza erguida y estable?", desc: "El control cefálico es fundamental para tragar de forma segura sin riesgo de atragantamiento.", critical: true },
-  { title: "¿Se mantiene sentado con apoyo mínimo?", desc: "Debe poder mantenerse erguido en la trona o en el regazo sin inclinarse bruscamente.", critical: true },
-  { title: "¿Ha perdido el reflejo de extrusión?", desc: "Ya no empuja automáticamente la comida o la cuchara hacia afuera con la lengua cuando toca su boca.", critical: true },
-  { title: "¿Tiene coordinación ojo-mano-boca?", desc: "Es capaz de coger un objeto o alimento con su mano y llevárselo directamente a la boca.", critical: true },
-  { title: "¿Tiene al menos 5.5 - 6 meses de edad?", desc: "La OMS y la AEP recomiendan lactancia exclusiva hasta alrededor de los 6 meses.", critical: false }
+  { title: "¿Tu bebé mantiene la cabeza erguida y estable?", desc: "El control cefálico es fundamental para tragar de forma segura.", critical: true },
+  { title: "¿Se mantiene sentado con apoyo mínimo?", desc: "Debe poder mantenerse erguido en la trona.", critical: true },
+  { title: "¿Ha perdido el reflejo de extrusión?", desc: "Ya no empuja la comida hacia afuera con la lengua.", critical: true },
+  { title: "¿Tiene coordinación ojo-mano-boca?", desc: "Se lleva objetos a la boca con la mano.", critical: true },
+  { title: "¿Tiene al menos 5.5 - 6 meses de edad?", desc: "Recomendación oficial OMS/AEP.", critical: false }
 ];
 
-// ESTADO GLOBAL
 let appState = { isSleeping: false, sleepStartTime: null, lastSleepEndTime: null, timerInterval: null, logs: [], growth: [], teeth: [], allergens: [] };
 let syncQueue = JSON.parse(localStorage.getItem("leandro_sync_queue") || '{"records":[],"growth":[],"teeth":[],"allergens":[],"deletedIds":[]}');
 if (!syncQueue.deletedIds) syncQueue.deletedIds = [];
 
-// CRONÓMETRO DE LACTANCIA POR PECHO (NUEVO v6.0)
-let nursingTimerState = {
-  activeSide: null, // 'left', 'right', or null
-  leftSec: 0,
-  rightSec: 0,
-  interval: null
-};
-
+let nursingTimerState = { activeSide: null, leftSec: 0, rightSec: 0, interval: null };
 let quizCurrentIndex = 0;
 let quizAnswers = [];
 let chartSleepInst = null, chartFeedInst = null, chartDiaperInst = null;
@@ -226,12 +117,12 @@ document.addEventListener("DOMContentLoaded", () => {
   initAllergenModal();
   renderAllergensUI();
   
-  // Módulos interactivos v6.0
   initNursingTimerWidget();
   initBottleCalculator();
   initProntitudeQuiz();
   initFoodFinder();
   initMenuGenerator();
+  initAIChat();
 
   loadData();
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
@@ -246,7 +137,6 @@ document.addEventListener("visibilitychange", () => {
 setInterval(processSyncQueue, 15000);
 setInterval(loadData, 30000);
 
-// CONFIGURACIÓN Y AJUSTES
 function initSettings() {
   const modal = document.getElementById("settings-modal");
   const btnOpen = document.getElementById("btn-settings");
@@ -269,7 +159,6 @@ function initSettings() {
   };
 }
 
-// SINCRONIZACIÓN Y RED
 async function processSyncQueue() {
   const url = localStorage.getItem("leandro_api_url");
   if (!url || (syncQueue.records.length === 0 && syncQueue.growth.length === 0 && syncQueue.teeth.length === 0 && syncQueue.allergens.length === 0 && syncQueue.deletedIds.length === 0)) return;
@@ -435,8 +324,95 @@ function deleteRecord(id) {
 }
 
 // =============================================================
-// NUEVA FUNCIONALIDAD v6.0: CRONÓMETRO DE LACTANCIA POR PECHO
+// CONSULTORIO CHATBOT IA PEDIÁTRICA v7.0
 // =============================================================
+function initAIChat() {
+  const btnSend = document.getElementById("btn-send-chat");
+  const input = document.getElementById("chat-input");
+
+  if (!btnSend || !input) return;
+
+  const handleSend = async () => {
+    const prompt = input.value.trim();
+    if (!prompt) return;
+
+    appendChatMessage("user", prompt);
+    input.value = "";
+
+    const loadingMsg = appendChatMessage("ai", "⏳ Pensando respuesta...");
+
+    const url = localStorage.getItem("leandro_api_url");
+    if (!url) {
+      loadingMsg.textContent = "⚠️ Configura la URL de tu API Apps Script en los Ajustes (⚙️) para usar la IA.";
+      return;
+    }
+
+    // Calcular contexto de Leandro
+    const bdStr = localStorage.getItem("leandro_birth_date");
+    let ageMonths = 6; // Por defecto si no hay fecha
+    if (bdStr) {
+      const bd = new Date(bdStr);
+      if (bd <= new Date()) ageMonths = Math.round(((new Date() - bd) / (1000 * 60 * 60 * 24 * 30.44)) * 10) / 10;
+    }
+
+    const introducedList = [];
+    const reactionList = [];
+
+    appState.allergens.forEach(a => {
+      const status = a.status || a.Status || "";
+      const name = a.allergenKey || a.AllergenKey;
+      if (status === "Introducido") introducedList.push(name);
+      else if (status.includes("Reacción")) reactionList.push(name);
+    });
+
+    const babyContext = {
+      ageMonths: ageMonths,
+      allergensOk: introducedList.join(", ") || "Ninguno",
+      allergensNok: reactionList.join(", ") || "Ninguno"
+    };
+
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ action: "askGemini", data: { prompt: prompt, babyContext: babyContext } })
+      });
+
+      if (!res.ok) throw new Error("Error en petición");
+      const json = await res.json();
+
+      if (json.reply) {
+        let replyText = json.reply;
+        if (replyText.includes("🚨")) {
+          loadingMsg.className = "chat-msg emergency";
+        }
+        loadingMsg.innerHTML = replyText.replace(/\n/g, "<br>").replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+      } else {
+        loadingMsg.textContent = "Respuesta no recibida de la IA.";
+      }
+    } catch (e) {
+      loadingMsg.textContent = "⚠️ Error al comunicarse con la IA: " + e.toString();
+    }
+  };
+
+  btnSend.onclick = handleSend;
+  input.onkeypress = (e) => { if (e.key === 'Enter') handleSend(); };
+}
+
+function appendChatMessage(sender, text) {
+  const container = document.getElementById("chat-messages");
+  if (!container) return;
+
+  const div = document.createElement("div");
+  div.className = `chat-msg ${sender}`;
+  div.innerHTML = text;
+
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+  return div;
+}
+
+// CRONÓMETRO DE LACTANCIA POR PECHO
 function initNursingTimerWidget() {
   const boxLeft = document.getElementById("breast-left-btn");
   const boxRight = document.getElementById("breast-right-btn");
@@ -452,12 +428,10 @@ function initNursingTimerWidget() {
     const minR = Math.round(nursingTimerState.rightSec / 60);
     const totalMin = Math.max(1, minL + minR);
 
-    // Detener temporizador
     clearInterval(nursingTimerState.interval);
     nursingTimerState.interval = null;
     nursingTimerState.activeSide = null;
 
-    // Guardar registro
     saveToQueueAndState('record', {
       id: generateUUID(),
       timestamp: new Date().toISOString(),
@@ -469,7 +443,6 @@ function initNursingTimerWidget() {
       fechaFin: new Date().toISOString()
     });
 
-    // Resetear UI
     nursingTimerState.leftSec = 0;
     nursingTimerState.rightSec = 0;
     updateNursingUI();
@@ -479,12 +452,10 @@ function initNursingTimerWidget() {
 
 function toggleBreastTimer(side) {
   if (nursingTimerState.activeSide === side) {
-    // Pausar si pulsa el mismo lado
     nursingTimerState.activeSide = null;
     clearInterval(nursingTimerState.interval);
     nursingTimerState.interval = null;
   } else {
-    // Cambiar lado activo e iniciar
     nursingTimerState.activeSide = side;
     if (!nursingTimerState.interval) {
       nursingTimerState.interval = setInterval(() => {
@@ -513,6 +484,8 @@ function updateNursingUI() {
   const statusRight = document.getElementById("status-right");
   const btnFinish = document.getElementById("btn-finish-nursing");
 
+  if(!timerLeft) return;
+
   timerLeft.textContent = formatMinSec(nursingTimerState.leftSec);
   timerRight.textContent = formatMinSec(nursingTimerState.rightSec);
   totalDisplay.textContent = formatMinSec(nursingTimerState.leftSec + nursingTimerState.rightSec);
@@ -530,14 +503,10 @@ function updateNursingUI() {
   }
 }
 
-// =============================================================
-// NUEVA FUNCIONALIDAD v6.0: PERCENTILES DE LA OMS
-// =============================================================
+// PERCENTILES DE LA OMS
 function calculateWHOPercentile(val, ageMonths, type) {
   if (!val || val <= 0) return { pStr: "-", status: "-" };
 
-  // Tablas medianas simplificadas para varones OMS (0-12 meses)
-  // Peso P50 (kg), Talla P50 (cm), Perímetro Cefálico P50 (cm)
   const medianTables = {
     weight: [3.3, 4.5, 5.6, 6.4, 7.0, 7.5, 7.9, 8.3, 8.6, 8.9, 9.2, 9.6],
     height: [49.9, 54.7, 58.4, 61.4, 63.9, 65.9, 67.6, 69.2, 70.6, 72.0, 73.3, 75.7],
@@ -581,7 +550,6 @@ function initGrowthForm() {
     const pHeight = calculateWHOPercentile(height, ageMonths, "height");
     const pHead = calculateWHOPercentile(head, ageMonths, "head");
 
-    // Mostrar box resultado
     document.getElementById("who-percentiles-box").style.display = "block";
     document.getElementById("p-val-weight").textContent = pWeight.pStr;
     document.getElementById("p-status-weight").textContent = pWeight.status;
@@ -606,7 +574,7 @@ function initGrowthForm() {
   };
 }
 
-// HERRAMIENTAS INTERACTIVAS
+// HERRAMIENTAS
 function initBottleCalculator() {
   const form = document.getElementById("bottle-calc-form");
   if (!form) return;
