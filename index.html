@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#3b82f6">
+  <meta name="theme-color" content="#2563eb">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>Leandro App - Seguimiento Infantil</title>
+  <title>Leandro App - Seguimiento Infantil v6.0</title>
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="styles.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -33,16 +33,41 @@
       </div>
     </header>
 
+    <!-- NAVEGACIÓN PRINCIPAL -->
     <nav class="nav-tabs">
-      <button class="tab-btn active" data-tab="tab-quick">Registro</button>
-      <button class="tab-btn" data-tab="tab-timeline">Línea del Día</button>
-      <button class="tab-btn" data-tab="tab-growth">Desarrollo</button>
-      <button class="tab-btn" data-tab="tab-stats">Estadísticas</button>
+      <button class="tab-btn active" data-tab="tab-quick">📝 Registro</button>
+      <button class="tab-btn" data-tab="tab-timeline">📅 Día</button>
+      <button class="tab-btn" data-tab="tab-allergens">🥜 Alérgenos</button>
+      <button class="tab-btn" data-tab="tab-tools">🛠️ Herramientas</button>
+      <button class="tab-btn" data-tab="tab-growth">📏 Desarrollo</button>
+      <button class="tab-btn" data-tab="tab-stats">📊 Stats</button>
     </nav>
 
     <main class="main-content">
-      <!-- TAB 1: REGISTRO RÁPIDO -->
+      <!-- TAB 1: REGISTRO RÁPIDO & TEMPORIZADOR DE LACTANCIA -->
       <section id="tab-quick" class="tab-content active">
+        
+        <!-- WIDGET NUEVO v6.0: TEMPORIZADOR ACTIVO DE LACTANCIA POR PECHO -->
+        <div class="nursing-card">
+          <div class="nursing-header">
+            <h3>🤱 Cronómetro de Lactancia</h3>
+            <span id="nursing-total-time" class="widget-value" style="color:var(--color-feed);">00:00</span>
+          </div>
+          <div class="nursing-grid">
+            <div class="breast-box" id="breast-left-btn">
+              <h4>Pecho Izquierdo</h4>
+              <div class="breast-timer" id="timer-breast-left">00:00</div>
+              <span class="text-sm text-muted" id="status-left">Pulsar para iniciar</span>
+            </div>
+            <div class="breast-box" id="breast-right-btn">
+              <h4>Pecho Derecho</h4>
+              <div class="breast-timer" id="timer-breast-right">00:00</div>
+              <span class="text-sm text-muted" id="status-right">Pulsar para iniciar</span>
+            </div>
+          </div>
+          <button id="btn-finish-nursing" class="btn btn-feed btn-full" style="display:none;">💾 Guardar Toma de Lactancia</button>
+        </div>
+
         <div class="card widget-card">
           <div class="widget-header">
             <h3>💧 Semáforo de Hidratación</h3>
@@ -124,25 +149,201 @@
         </div>
       </section>
 
-      <!-- TAB 3: DESARROLLO -->
+      <!-- TAB 3: DIARIO DE ALÉRGENOS -->
+      <section id="tab-allergens" class="tab-content">
+        <div class="card widget-card">
+          <h3>📊 Progreso de Alérgenos</h3>
+          <div class="allergen-kpi-grid">
+            <div class="kpi-box kpi-success"><span id="kpi-introduced">0</span><label>Introducidos</label></div>
+            <div class="kpi-box kpi-testing"><span id="kpi-testing">0</span><label>En prueba</label></div>
+            <div class="kpi-box kpi-reaction"><span id="kpi-reaction">0</span><label>Reacciones</label></div>
+            <div class="kpi-box kpi-pending"><span id="kpi-pending">14</span><label>Pendientes</label></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>🥜 Los 14 Alérgenos Principales</h3>
+          <p class="text-sm text-muted" style="margin-bottom:12px;">Pulsa sobre cualquier alérgeno para actualizar su estado de prueba (Regla de los 3 días).</p>
+          <div class="allergen-grid" id="allergen-grid"></div>
+        </div>
+
+        <div class="card">
+          <h3>📖 Guía de Introducción</h3>
+          <details class="guide-accordion">
+            <summary><strong>¿Cómo funciona la Regla de los 3 Días?</strong></summary>
+            <p class="text-sm" style="margin-top:8px;">Ofrece el nuevo alérgeno en pequeña cantidad el Día 1. Si no hay reacción, aumenta progresivamente los Días 2 y 3. Tras 3 días sin síntomas, se considera introducido con éxito.</p>
+          </details>
+          <details class="guide-accordion" style="margin-top:8px;">
+            <summary><strong>Señales de Reacción Alérgica</strong></summary>
+            <ul class="text-sm" style="margin-top:8px; padding-left:16px;">
+              <li><strong>Leve:</strong> Rojeces periorales, urticaria localizada.</li>
+              <li><strong>Moderada:</strong> Urticaria generalizada, hinchazón, vómitos repetidos.</li>
+              <li><strong>Grave (URGENCIAS):</strong> Dificultad para respirar, hinchazón de labios/lengua.</li>
+            </ul>
+          </details>
+        </div>
+      </section>
+
+      <!-- TAB 4: HERRAMIENTAS INTERACTIVAS -->
+      <section id="tab-tools" class="tab-content">
+        <div class="tools-nav-grid">
+          <button class="tool-subtab-btn active" data-subtab="tool-bottle">🍼 Calculadora Tomas</button>
+          <button class="tool-subtab-btn" data-subtab="tool-quiz">🧪 Quiz Prontitud</button>
+          <button class="tool-subtab-btn" data-subtab="tool-search">🥑 Buscador BLW (200+)</button>
+          <button class="tool-subtab-btn" data-subtab="tool-menu">🥦 Menú BLW</button>
+        </div>
+
+        <!-- HERRAMIENTA 1: CALCULADORA DE TOMAS -->
+        <div id="tool-bottle" class="tool-content active">
+          <div class="card">
+            <h3>🍼 Calculadora de Tomas y Biberones</h3>
+            <p class="text-sm text-muted" style="margin-bottom:12px;">Estimación orientativa de mililitros y tomas basada en peso y edad.</p>
+            <form id="bottle-calc-form">
+              <div class="form-group">
+                <label>Edad del bebé (meses)</label>
+                <input type="number" id="calc-age" min="0" max="12" step="0.5" placeholder="Ej: 3" required>
+              </div>
+              <div class="form-group">
+                <label>Peso actual (kg)</label>
+                <input type="number" id="calc-weight" step="0.1" placeholder="Ej: 5.4" required>
+              </div>
+              <div class="form-group">
+                <label>Tipo de lactancia</label>
+                <select id="calc-type">
+                  <option value="formula">Fórmula</option>
+                  <option value="materna">Materna Exclusiva</option>
+                  <option value="mixta">Mixta</option>
+                </select>
+              </div>
+              <button type="submit" class="btn btn-primary btn-full" style="margin-top:12px;">Calcular Recomendación</button>
+            </form>
+
+            <div id="calc-result" class="result-box" style="display:none; margin-top:16px;">
+              <h4 id="res-title" style="color:var(--color-sleep); margin-bottom:6px;"></h4>
+              <p id="res-daily" class="text-sm"></p>
+              <p id="res-bottle" class="text-sm"></p>
+              <p id="res-note" class="text-sm text-muted" style="margin-top:8px; font-style:italic;"></p>
+            </div>
+          </div>
+        </div>
+
+        <!-- HERRAMIENTA 2: QUIZ PRONTITUD -->
+        <div id="tool-quiz" class="tool-content">
+          <div class="card">
+            <h3>🧪 Quiz: ¿Está listo para comer?</h3>
+            <p class="text-sm text-muted" style="margin-bottom:12px;">Evaluador de señales madurativas (OMS / AEP).</p>
+
+            <div id="quiz-step-container">
+              <div id="quiz-question-box">
+                <span id="quiz-step-badge" class="badge badge-optimal">Pregunta 1 de 5</span>
+                <h4 id="quiz-q-title" style="margin:10px 0 4px 0; font-size:1rem;"></h4>
+                <p id="quiz-q-desc" class="text-sm text-muted" style="margin-bottom:12px;"></p>
+                <div style="display:flex; gap:10px;">
+                  <button id="quiz-btn-yes" class="btn btn-primary" style="flex:1;">Sí, lo cumple</button>
+                  <button id="quiz-btn-no" class="btn" style="flex:1; background:#e2e8f0; color:#0f172a;">Aún no</button>
+                </div>
+              </div>
+            </div>
+
+            <div id="quiz-result-box" class="result-box" style="display:none;">
+              <h4 id="quiz-res-title" style="margin-bottom:6px;"></h4>
+              <p id="quiz-res-desc" class="text-sm"></p>
+              <button id="quiz-btn-reset" class="btn btn-primary btn-full" style="margin-top:12px;">Repetir Test</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- HERRAMIENTA 3: BUSCADOR BLW (200+ ALIMENTOS) -->
+        <div id="tool-search" class="tool-content">
+          <div class="card">
+            <h3>🥑 Buscador de Alimentos BLW (200+ Alimentos)</h3>
+            <div class="form-group" style="margin-bottom:10px;">
+              <input type="text" id="food-search-input" placeholder="Buscar entre 200+ alimentos (ej. aguacate, merluza, huevo, avena)...">
+            </div>
+
+            <div class="filter-pills-row" id="food-age-filters">
+              <button class="filter-pill active" data-filter="all">Todos (200+)</button>
+              <button class="filter-pill" data-filter="6">Desde 6m</button>
+              <button class="filter-pill" data-filter="8">Desde 8m</button>
+              <button class="filter-pill" data-filter="10">Desde 10m+</button>
+              <button class="filter-pill" data-filter="Fruta">Frutas 🍎</button>
+              <button class="filter-pill" data-filter="Verdura">Verduras 🥦</button>
+              <button class="filter-pill" data-filter="Proteína">Proteínas 🍗</button>
+              <button class="filter-pill" data-filter="Cereal">Cereales 🌾</button>
+              <button class="filter-pill" data-filter="Prohibido">Prohibidos 🛑</button>
+            </div>
+
+            <div id="food-results-grid" class="food-results-list" style="margin-top:12px;"></div>
+          </div>
+        </div>
+
+        <!-- HERRAMIENTA 4: GENERADOR DE MENÚ BLW MULTI-OPCIÓN -->
+        <div id="tool-menu" class="tool-content">
+          <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <h3>🥦 Menú BLW Semanal</h3>
+              <button id="btn-generate-menu" class="btn btn-primary" style="padding:6px 14px; font-size:0.8rem; width:auto;">🎲 Nuevo Menú</button>
+            </div>
+            <p class="text-sm text-muted" style="margin-bottom:12px;">Plan de 7 días variado con combinaciones aleatorias infinitas.</p>
+
+            <div id="menu-table-container" style="overflow-x:auto;">
+              <table class="menu-table">
+                <thead>
+                  <tr>
+                    <th>Día</th>
+                    <th>Comida / Almuerzo</th>
+                    <th>Cena</th>
+                  </tr>
+                </thead>
+                <tbody id="menu-table-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 5: DESARROLLO Y PERCENTILES DE LA OMS (NUEVO v6.0) -->
       <section id="tab-growth" class="tab-content">
         <div class="card">
-          <h3>Antropometría</h3>
+          <h3>Antropometría y Percentiles OMS</h3>
+          <p class="text-sm text-muted" style="margin-bottom:10px;">Introduce el peso y talla para calcular la curva de crecimiento oficial de la OMS.</p>
           <form id="growth-form">
             <div class="form-group">
               <label>Peso (kg)</label>
-              <input type="number" id="growth-weight" step="0.01" placeholder="Ej. 3.25" required>
+              <input type="number" id="growth-weight" step="0.01" placeholder="Ej. 6.2" required>
             </div>
             <div class="form-group">
               <label>Talla (cm)</label>
-              <input type="number" id="growth-height" step="0.1" placeholder="Ej. 50.0">
+              <input type="number" id="growth-height" step="0.1" placeholder="Ej. 61.5">
             </div>
             <div class="form-group">
               <label>Perímetro Cefálico (cm)</label>
-              <input type="number" id="growth-head" step="0.1" placeholder="Ej. 35.0">
+              <input type="number" id="growth-head" step="0.1" placeholder="Ej. 40.2">
             </div>
-            <button type="submit" class="btn btn-primary">Guardar Medición</button>
+            <button type="submit" class="btn btn-primary" style="margin-top:12px;">Guardar y Calcular Percentil</button>
           </form>
+
+          <!-- RESULTADO DE PERCENTILES OMS -->
+          <div id="who-percentiles-box" style="display:none; margin-top:16px;">
+            <h4 style="font-size:0.9rem; color:var(--text-muted);">📊 Curva de Crecimiento OMS (Resultado)</h4>
+            <div class="percentile-results-grid">
+              <div class="percentile-card">
+                <h5>Peso</h5>
+                <div class="percentile-value" id="p-val-weight">P50</div>
+                <span class="percentile-status" id="p-status-weight">Normal</span>
+              </div>
+              <div class="percentile-card">
+                <h5>Talla</h5>
+                <div class="percentile-value" id="p-val-height">P50</div>
+                <span class="percentile-status" id="p-status-height">Normal</span>
+              </div>
+              <div class="percentile-card">
+                <h5>Perímetro</h5>
+                <div class="percentile-value" id="p-val-head">P50</div>
+                <span class="percentile-status" id="p-status-head">Normal</span>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="card">
@@ -152,7 +353,7 @@
         </div>
       </section>
 
-      <!-- TAB 4: ESTADÍSTICAS -->
+      <!-- TAB 6: ESTADÍSTICAS -->
       <section id="tab-stats" class="tab-content">
         <div class="card" style="text-align: center;">
           <button id="btn-export-report" class="btn btn-primary btn-full">📋 Exportar Ficha para Pediatra</button>
@@ -173,7 +374,7 @@
     </main>
   </div>
 
-  <!-- MODAL DE AJUSTES -->
+  <!-- MODALES -->
   <div id="settings-modal" class="modal">
     <div class="modal-content">
       <span class="modal-close" id="settings-close">&times;</span>
@@ -187,14 +388,13 @@
         <div class="form-group">
           <label>Fecha de Nacimiento del Bebé</label>
           <input type="date" id="set-birthdate">
-          <p class="text-sm text-muted">Necesario para adaptar automáticamente las alertas de ventanas de sueño.</p>
+          <p class="text-sm text-muted">Necesario para calcular percentiles OMS y ventanas de sueño.</p>
         </div>
         <button type="submit" class="btn btn-primary btn-full" style="margin-top:16px;">Guardar y Sincronizar</button>
       </form>
     </div>
   </div>
 
-  <!-- MODAL DE CAPTURA RÁPIDA -->
   <div id="action-modal" class="modal">
     <div class="modal-content">
       <span class="modal-close" id="action-close">&times;</span>
@@ -207,6 +407,32 @@
           <input type="text" id="modal-notes" placeholder="Observaciones...">
         </div>
         <button type="submit" class="btn btn-primary btn-full">Guardar Registro</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="allergen-modal" class="modal">
+    <div class="modal-content">
+      <span class="modal-close" id="allergen-close">&times;</span>
+      <h3 id="allergen-modal-title">Probar Alérgeno</h3>
+      <form id="allergen-form">
+        <input type="hidden" id="allergen-key">
+        <div class="form-group">
+          <label>Estado de Introducción</label>
+          <select id="allergen-status-select" required>
+            <option value="Pendiente">Pendiente</option>
+            <option value="En prueba - Día 1">En prueba - Día 1</option>
+            <option value="En prueba - Día 2">En prueba - Día 2</option>
+            <option value="En prueba - Día 3">En prueba - Día 3</option>
+            <option value="Introducido">Introducido (Sin Reacción)</option>
+            <option value="Reacción Alérgica">⚠️ Reacción Alérgica</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Notas u Observaciones (Síntomas, plato...)</label>
+          <input type="text" id="allergen-notes" placeholder="Ej. Yema cocida probada a mediodía...">
+        </div>
+        <button type="submit" class="btn btn-primary btn-full" style="margin-top:12px;">Actualizar Estado</button>
       </form>
     </div>
   </div>
