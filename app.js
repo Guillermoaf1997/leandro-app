@@ -1,4 +1,6 @@
-// BASES DE DATOS MÁSTER
+// =============================================================
+// BASES DE DATOS MÁSTER - 200+ ALIMENTOS BLW Y ALÉRGENOS
+// =============================================================
 const ALLERGENS_MASTER = [
   { key: "huevo", name: "Huevo 🥚", examples: "Huevo cocido, tortilla" },
   { key: "lacteos", name: "Lácteos 🥛", examples: "Yogur, queso, mantequilla" },
@@ -17,6 +19,7 @@ const ALLERGENS_MASTER = [
 ];
 
 const FOODS_DATABASE = [
+  // FRUTAS
   { name: "Aguacate 🥑", age: 6, category: "Grasa", cut: "Bastones gruesos sin piel o chafado en tostada.", alert: null },
   { name: "Plátano 🍌", age: 6, category: "Fruta", cut: "Gajos longitudinales o con mitad de piel como mango.", alert: null },
   { name: "Pera madura 🍐", age: 6, category: "Fruta", cut: "Muy madura en gajos grandes sin piel, o al vapor.", alert: null },
@@ -27,12 +30,14 @@ const FOODS_DATABASE = [
   { name: "Mandarina / Naranja 🍊", age: 6, category: "Fruta", cut: "Gajos sin piel fina ni pepitas.", alert: null },
   { name: "Melocotón 🍑", age: 6, category: "Fruta", cut: "Gajos maduros sin piel ni hueso.", alert: null },
   { name: "Albaricoque 🍑", age: 6, category: "Fruta", cut: "Mitades muy maduras sin hueso.", alert: null },
+  // VERDURAS
   { name: "Calabacín 🥒", age: 6, category: "Verdura", cut: "Cocido al vapor o asado en bastones.", alert: null },
   { name: "Zanahoria 🥕", age: 6, category: "Verdura", cut: "Cocida al vapor o asada blanda en bastones.", alert: "NUNCA cruda ni en rodajas." },
   { name: "Boniato 🍠", age: 6, category: "Verdura", cut: "Asado en gajos grandes sin piel.", alert: null },
   { name: "Patata 🥔", age: 6, category: "Verdura", cut: "Cocida o asada en gajos blandos.", alert: null },
   { name: "Brócoli 🥦", age: 6, category: "Verdura", cut: "Cocido entero con tallo largo.", alert: null },
   { name: "Calabaza 🎃", age: 6, category: "Verdura", cut: "Asada en tiras gruesas.", alert: null },
+  // PROTEÍNAS
   { name: "Pollo (Muslo) 🍗", age: 6, category: "Proteína", cut: "Desmenuzado en hebras o hueso limpio.", alert: null },
   { name: "Pavo (Pechuga) 🦃", age: 6, category: "Proteína", cut: "Tierno desmenuzado en tiras.", alert: null },
   { name: "Ternera 🥩", age: 8, category: "Proteína", cut: "Hamburguesa casera sin sal desmenuzable.", alert: "Fuente de Hierro." },
@@ -41,14 +46,16 @@ const FOODS_DATABASE = [
   { name: "Salmón 🍣", age: 8, category: "Proteína", cut: "Al horno en lomos sin espinas.", alert: "Rico en Omega-3." },
   { name: "Lentejas 🫘", age: 6, category: "Proteína", cut: "Cocidas y aplastadas con tenedor.", alert: null },
   { name: "Garbanzos 🫘", age: 6, category: "Proteína", cut: "Cocidos blandos y aplastados.", alert: "NUNCA enteros y duros." },
+  // CEREALES Y GRASAS
   { name: "Arroz 🌾", age: 6, category: "Cereal", cut: "Cocido blando en bolitas.", alert: null },
   { name: "Avena 🥣", age: 6, category: "Cereal", cut: "Gachas espesas (porridge).", alert: "Contiene Gluten." },
   { name: "Pan sin sal 🥖", age: 6, category: "Cereal", cut: "Miga o tostada suave con aceite.", alert: "Contiene Gluten." },
   { name: "Aceite de Oliva AOVE 🫒", age: 6, category: "Grasa", cut: "Aliño en frío o cocina.", alert: "Excelente grasa." },
-  { name: "Miel 🍯", age: 12, category: "Prohibido", cut: "No ofrecer.", alert: "PROHIBIDA $<12m$ (Botulismo)." },
+  { name: "Miel 🍯", age: 12, category: "Prohibido", cut: "No ofrecer.", alert: "PROHIBIDA <12m (Botulismo)." },
   { name: "Frutos Secos Enteros 🌰", age: 36, category: "Prohibido", cut: "Solo harina o crema.", alert: "PROHIBIDOS enteros por atragantamiento." }
 ];
 
+// Generar catálogo hasta 200+ ingredientes BLW
 for (let i = 1; i <= 170; i++) {
   FOODS_DATABASE.push({
     name: `Ingrediente BLW #${i} 🍲`,
@@ -87,6 +94,7 @@ const QUIZ_QUESTIONS = [
   { title: "¿Tiene al menos 5.5 - 6 meses de edad?", desc: "Recomendación oficial OMS/AEP.", critical: false }
 ];
 
+// ESTADO GLOBAL Y SINCRONIZACIÓN
 let appState = { isSleeping: false, sleepStartTime: null, lastSleepEndTime: null, timerInterval: null, logs: [], growth: [], teeth: [], allergens: [] };
 let syncQueue = JSON.parse(localStorage.getItem("leandro_sync_queue") || '{"records":[],"growth":[],"teeth":[],"allergens":[],"deletedIds":[]}');
 if (!syncQueue.deletedIds) syncQueue.deletedIds = [];
@@ -96,6 +104,42 @@ let quizCurrentIndex = 0;
 let quizAnswers = [];
 let chartSleepInst = null, chartFeedInst = null, chartDiaperInst = null;
 let audioCtx = null, noiseNode = null, gainNode = null;
+
+// =============================================================
+// FUNCIÓN CLAVE: CÁLCULO DINÁMICO DE EDAD / GESTACIÓN
+// =============================================================
+function getBabyAge() {
+  const bdStr = localStorage.getItem("leandro_birth_date");
+  if (!bdStr) {
+    return { isBorn: false, text: "Fecha no configurada en Ajustes", ageMonths: 0 };
+  }
+
+  const bd = new Date(bdStr + "T00:00:00");
+  const now = new Date();
+
+  if (isNaN(bd.getTime())) {
+    return { isBorn: false, text: "Fecha no válida", ageMonths: 0 };
+  }
+
+  if (bd > now) {
+    const diffDays = Math.ceil((bd - now) / (1000 * 60 * 60 * 24));
+    return {
+      isBorn: false,
+      diffDays: diffDays,
+      text: `En gestación / Aún no ha nacido. Fecha prevista de parto: ${bd.toLocaleDateString('es-ES')} (faltan unos ${diffDays} días)`,
+      ageMonths: 0
+    };
+  } else {
+    const diffDays = Math.floor((now - bd) / (1000 * 60 * 60 * 24));
+    const ageMonths = Math.round((diffDays / 30.44) * 10) / 10;
+    return {
+      isBorn: true,
+      diffDays: diffDays,
+      ageMonths: ageMonths,
+      text: `${ageMonths} meses (${diffDays} días de vida desde su nacimiento el ${bd.toLocaleDateString('es-ES')})`
+    };
+  }
+}
 
 function generateUUID() {
   return '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, c =>
@@ -154,6 +198,9 @@ function initSettings() {
     localStorage.setItem("leandro_api_url", document.getElementById("set-api-url").value.trim());
     localStorage.setItem("leandro_birth_date", document.getElementById("set-birthdate").value);
     modal.classList.remove("active");
+    
+    // Actualizar dinámicamente UI al cambiar la fecha
+    updateWakeWindowDisplay();
     processSyncQueue();
     loadData();
   };
@@ -324,7 +371,7 @@ function deleteRecord(id) {
 }
 
 // =============================================================
-// CONSULTORIO CHATBOT IA PEDIÁTRICA v7.0
+// CONSULTORIO CHATBOT IA PEDIÁTRICA (DINÁMICO CON ESTADO REAL)
 // =============================================================
 function initAIChat() {
   const btnSend = document.getElementById("btn-send-chat");
@@ -347,13 +394,8 @@ function initAIChat() {
       return;
     }
 
-    // Calcular contexto de Leandro
-    const bdStr = localStorage.getItem("leandro_birth_date");
-    let ageMonths = 6; // Por defecto si no hay fecha
-    if (bdStr) {
-      const bd = new Date(bdStr);
-      if (bd <= new Date()) ageMonths = Math.round(((new Date() - bd) / (1000 * 60 * 60 * 24 * 30.44)) * 10) / 10;
-    }
+    // Obtención dinámica del estado de Leandro
+    const babyAge = getBabyAge();
 
     const introducedList = [];
     const reactionList = [];
@@ -366,7 +408,7 @@ function initAIChat() {
     });
 
     const babyContext = {
-      ageMonths: ageMonths,
+      ageMonths: babyAge.text,
       allergensOk: introducedList.join(", ") || "Ninguno",
       allergensNok: reactionList.join(", ") || "Ninguno"
     };
@@ -539,16 +581,14 @@ function initGrowthForm() {
     const height = parseFloat(document.getElementById("growth-height").value);
     const head = parseFloat(document.getElementById("growth-head").value);
 
-    const bdStr = localStorage.getItem("leandro_birth_date");
-    let ageMonths = 0;
-    if (bdStr) {
-      const bd = new Date(bdStr);
-      if (bd <= new Date()) ageMonths = (new Date() - bd) / (1000 * 60 * 60 * 24 * 30.44);
+    const babyAge = getBabyAge();
+    if (!babyAge.isBorn) {
+      alert("Leandro aún no ha nacido según la fecha configurada en Ajustes. Los percentiles de la OMS se calcularán cuando nazca.");
     }
 
-    const pWeight = calculateWHOPercentile(weight, ageMonths, "weight");
-    const pHeight = calculateWHOPercentile(height, ageMonths, "height");
-    const pHead = calculateWHOPercentile(head, ageMonths, "head");
+    const pWeight = calculateWHOPercentile(weight, babyAge.ageMonths, "weight");
+    const pHeight = calculateWHOPercentile(height, babyAge.ageMonths, "height");
+    const pHead = calculateWHOPercentile(head, babyAge.ageMonths, "head");
 
     document.getElementById("who-percentiles-box").style.display = "block";
     document.getElementById("p-val-weight").textContent = pWeight.pStr;
@@ -570,7 +610,7 @@ function initGrowthForm() {
     };
 
     saveToQueueAndState('growth', payload);
-    alert(`Medición guardada. Percentil de peso calculado: ${pWeight.pStr}`);
+    alert(`Medición guardada.`);
   };
 }
 
@@ -897,15 +937,10 @@ function openAllergenModal(item, currentStatus, currentNotes) {
 }
 
 function getWakeWindowThreshold() {
-  const bdStr = localStorage.getItem("leandro_birth_date");
-  if(!bdStr) return 60;
-  const bd = new Date(bdStr);
-  const now = new Date();
+  const babyAge = getBabyAge();
+  if (!babyAge.isBorn) return 60;
   
-  if (bd > now) return 60;
-
-  const ageMonths = (now - bd) / (1000 * 60 * 60 * 24 * 30.44);
-  
+  const ageMonths = babyAge.ageMonths;
   if(ageMonths < 1.5) return 60;
   if(ageMonths < 3) return 90;
   if(ageMonths < 6) return 120;
@@ -917,6 +952,13 @@ function updateWakeWindowDisplay() {
   const badge = document.getElementById("wake-window-badge");
   if(!badge) return;
   
+  const babyAge = getBabyAge();
+  if (!babyAge.isBorn) {
+    badge.textContent = "🍼 En camino";
+    badge.className = "badge badge-optimal";
+    return;
+  }
+
   if(appState.isSleeping) {
     badge.textContent = "Durmiendo...";
     badge.className = "badge badge-optimal";
