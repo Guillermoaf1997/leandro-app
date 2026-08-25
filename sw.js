@@ -1,4 +1,4 @@
-const CACHE_NAME = 'leandro-app-v6.0';
+const CACHE_NAME = 'leandro-app-v7.0';
 const ASSETS = [
   './',
   './index.html',
