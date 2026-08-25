@@ -1,4 +1,4 @@
-const CACHE_NAME = 'leandro-app-v3';
+const CACHE_NAME = 'leandro-app-v6.0';
 const ASSETS = [
   './',
   './index.html',
@@ -6,7 +6,6 @@ const ASSETS = [
   './app.js',
   './manifest.json'
 ];
-// NOTA: Chart.js eliminado del precache inicial para que no bloquee la instalación si la red falla.
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -28,8 +27,6 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Estrategia Stale-While-Revalidate para recursos locales (más rápida).
-// Las peticiones a APIs y scripts externos usan caché solo si no hay red.
 self.addEventListener('fetch', (event) => {
   if (event.request.url.includes('script.google.com')) return;
 
@@ -41,9 +38,7 @@ self.addEventListener('fetch', (event) => {
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
         }
         return networkResponse;
-      }).catch(() => {
-        // Fallo de red silencioso (se sirve la caché)
-      });
+      }).catch(() => {});
       
       return cachedResponse || fetchPromise;
     })
