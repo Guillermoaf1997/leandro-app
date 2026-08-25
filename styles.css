@@ -3,7 +3,7 @@
   --card-bg: #ffffff;
   --text-main: #0f172a;
   --text-muted: #64748b;
-  --color-sleep: #3b82f6;
+  --color-sleep: #2563eb;
   --color-feed: #10b981;
   --color-hygiene: #f97316;
   --color-activity: #8b5cf6;
@@ -34,7 +34,8 @@ body.night-mode .btn-sleep-start {
 }
 
 body.night-mode .action-btn,
-body.night-mode .sleep-tracker-card {
+body.night-mode .sleep-tracker-card,
+body.night-mode .nursing-card {
   background: #2b0808;
   border-color: #450a0a;
   color: #ff8888;
@@ -43,14 +44,15 @@ body.night-mode .sleep-tracker-card {
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
 
 body { background-color: var(--bg-primary); color: var(--text-main); display: flex; justify-content: center; min-height: 100vh; transition: background-color 0.3s, color 0.3s; }
-.app-container { width: 100%; max-width: 480px; display: flex; flex-direction: column; padding-bottom: 20px; }
+.app-container { width: 100%; max-width: 500px; display: flex; flex-direction: column; padding-bottom: 20px; }
 .app-header { background: var(--card-bg); padding: 16px; border-bottom: 1px solid var(--border-color); position: sticky; top: 0; z-index: 100; }
 .header-title { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-.header-controls { display: flex; align-items: center; gap: 4px; }
-.icon-btn { background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 4px; }
+.header-controls { display: flex; align-items: center; gap: 6px; }
+.icon-btn { background: none; border: none; font-size: 1.25rem; cursor: pointer; padding: 4px; border-radius: 8px; }
+.icon-btn:hover { background: var(--bg-primary); }
 .header-title h1 { font-size: 1.25rem; font-weight: 700; }
 
-.badge { padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; color: #fff; }
+.badge { padding: 5px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; color: #fff; }
 .badge-optimal { background-color: var(--color-optimal); }
 .badge-alert { background-color: var(--color-alert); }
 .badge-overtired { background-color: var(--color-warning); }
@@ -60,16 +62,78 @@ body { background-color: var(--bg-primary); color: var(--text-main); display: fl
 .timer-label { font-size: 0.75rem; color: var(--text-muted); }
 #sleep-timer { font-size: 1.4rem; font-weight: 700; font-family: monospace; }
 
-.btn { border: none; border-radius: 12px; padding: 10px 16px; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: opacity 0.2s; }
-.btn:active { opacity: 0.8; }
+/* TEMPORIZADOR DE LACTANCIA POR PECHO (NUEVO v6.0) */
+.nursing-card {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: var(--border-radius);
+  padding: 14px;
+  margin-bottom: 16px;
+}
+.nursing-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.nursing-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+.breast-box {
+  background: var(--card-bg);
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  padding: 10px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.breast-box.active {
+  border-color: var(--color-feed);
+  background: #ecfdf5;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+}
+.breast-box h4 { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 4px; }
+.breast-timer { font-size: 1.3rem; font-weight: 700; font-family: monospace; color: var(--text-main); }
+
+.btn { border: none; border-radius: 12px; padding: 10px 16px; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+.btn:active { opacity: 0.8; transform: scale(0.98); }
 .btn-primary { background-color: var(--color-sleep); color: #fff; width: 100%; }
+.btn-feed { background-color: var(--color-feed); color: #fff; width: 100%; }
 .btn-sleep-start { background-color: var(--color-sleep); color: #fff; }
 .btn-sleep-stop { background-color: var(--color-warning); color: #fff; }
 .btn-full { width: 100%; }
 
-.nav-tabs { display: flex; background: var(--card-bg); border-bottom: 1px solid var(--border-color); }
-.tab-btn { flex: 1; padding: 12px 0; border: none; background: none; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); border-bottom: 2px solid transparent; cursor: pointer; }
-.tab-btn.active { color: var(--color-sleep); border-bottom-color: var(--color-sleep); }
+/* NAVEGACIÓN SUPERIOR DE PESTAÑAS */
+.nav-tabs { 
+  display: flex; 
+  background: var(--card-bg); 
+  border-bottom: 1px solid var(--border-color); 
+  overflow-x: auto; 
+  padding: 10px 12px;
+  gap: 8px;
+  scrollbar-width: none;
+}
+.nav-tabs::-webkit-scrollbar { display: none; }
+
+.tab-btn { 
+  flex-shrink: 0; 
+  padding: 8px 14px; 
+  border: 1px solid var(--border-color); 
+  background: var(--bg-primary); 
+  font-size: 0.82rem; 
+  font-weight: 600; 
+  color: var(--text-muted); 
+  border-radius: 20px; 
+  cursor: pointer; 
+  text-align: center; 
+  white-space: nowrap; 
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.tab-btn.active { 
+  color: #ffffff; 
+  background: var(--color-sleep);
+  border-color: var(--color-sleep);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+}
+
 .main-content { padding: 16px; }
 .tab-content { display: none; }
 .tab-content.active { display: block; }
@@ -77,7 +141,8 @@ body { background-color: var(--bg-primary); color: var(--text-main); display: fl
 .category-group { margin-bottom: 20px; }
 .category-group h3 { font-size: 0.95rem; color: var(--text-muted); margin-bottom: 8px; }
 .grid-matrix { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-.action-btn { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 12px 8px; display: flex; flex-direction: column; align-items: center; font-size: 0.75rem; font-weight: 500; box-shadow: var(--shadow); cursor: pointer; }
+.action-btn { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 12px 8px; display: flex; flex-direction: column; align-items: center; font-size: 0.75rem; font-weight: 500; box-shadow: var(--shadow); cursor: pointer; transition: transform 0.1s; }
+.action-btn:active { transform: scale(0.96); }
 .action-btn span { font-size: 1.4rem; margin-bottom: 4px; }
 .card { background: var(--card-bg); border-radius: var(--border-radius); padding: 16px; margin-bottom: 16px; box-shadow: var(--shadow); border: 1px solid var(--border-color); }
 .card h3 { font-size: 1rem; margin-bottom: 8px; }
@@ -108,6 +173,63 @@ body { background-color: var(--bg-primary); color: var(--text-main); display: fl
 .dot-feed { background: var(--color-feed); }
 .dot-hygiene { background: var(--color-hygiene); }
 .dot-activity { background: var(--color-activity); }
+
+/* ALÉRGENOS */
+.allergen-kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 10px; }
+.kpi-box { background: var(--bg-primary); border-radius: 10px; padding: 8px 4px; text-align: center; border: 1px solid var(--border-color); display: flex; flex-direction: column; align-items: center; }
+.kpi-box span { font-weight: 700; font-size: 1.1rem; }
+.kpi-box label { font-size: 0.65rem; color: var(--text-muted); margin-top: 2px; }
+.kpi-success span { color: var(--color-optimal); }
+.kpi-testing span { color: var(--color-sleep); }
+.kpi-reaction span { color: var(--color-warning); }
+.kpi-pending span { color: var(--text-muted); }
+
+.allergen-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 8px; }
+.allergen-card { background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 12px; padding: 10px; cursor: pointer; transition: transform 0.1s; display: flex; flex-direction: column; justify-content: space-between; }
+.allergen-card:active { transform: scale(0.98); }
+.allergen-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }
+.allergen-title { font-weight: 700; font-size: 0.85rem; }
+.allergen-examples { font-size: 0.7rem; color: var(--text-muted); margin-bottom: 6px; }
+.allergen-badge { padding: 3px 6px; border-radius: 8px; font-size: 0.65rem; font-weight: 600; text-align: center; display: inline-block; }
+.badge-status-Pendiente { background: #e2e8f0; color: #475569; }
+.badge-status-Testing { background: #dbeafe; color: #1e40af; }
+.badge-status-Introducido { background: #dcfce7; color: #15803d; }
+.badge-status-Reaccion { background: #fee2e2; color: #b91c1c; }
+
+.guide-accordion summary { cursor: pointer; font-size: 0.85rem; padding: 4px 0; }
+
+/* HERRAMIENTAS INTERACTIVAS v6.0 */
+.tools-nav-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 16px; }
+.tool-subtab-btn { padding: 10px 6px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-muted); font-size: 0.8rem; font-weight: 600; border-radius: 10px; cursor: pointer; text-align: center; }
+.tool-subtab-btn.active { background: var(--color-sleep); color: #fff; border-color: var(--color-sleep); }
+.tool-content { display: none; }
+.tool-content.active { display: block; }
+
+.result-box { padding: 12px; border-radius: 12px; background: var(--bg-primary); border: 1px solid var(--border-color); }
+
+.filter-pills-row { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; scrollbar-width: none; }
+.filter-pills-row::-webkit-scrollbar { display: none; }
+.filter-pill { padding: 6px 12px; border-radius: 16px; border: 1px solid var(--border-color); background: var(--card-bg); font-size: 0.75rem; font-weight: 600; color: var(--text-muted); cursor: pointer; flex-shrink: 0; }
+.filter-pill.active { background: var(--color-sleep); color: #fff; border-color: var(--color-sleep); }
+
+.food-card { background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 12px; padding: 12px; margin-bottom: 10px; box-shadow: var(--shadow); }
+
+.menu-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+.menu-table th, .menu-table td { padding: 8px; border: 1px solid var(--border-color); text-align: left; vertical-align: top; }
+.menu-table th { background: var(--bg-primary); font-weight: 700; color: var(--text-muted); }
+
+/* TARJETAS DE PERCENTILES OMS (NUEVO v6.0) */
+.percentile-results-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+.percentile-card {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 10px 6px;
+  text-align: center;
+}
+.percentile-card h5 { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; }
+.percentile-value { font-size: 1.1rem; font-weight: 800; color: var(--color-sleep); }
+.percentile-status { font-size: 0.65rem; font-weight: 600; padding: 2px 6px; border-radius: 6px; display: inline-block; margin-top: 4px; background: #e2e8f0; }
 
 .teeth-map { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 12px; }
 .tooth-item { border: 1px solid var(--border-color); border-radius: 8px; padding: 8px 4px; text-align: center; font-size: 0.7rem; background: var(--bg-primary); cursor: pointer; }
