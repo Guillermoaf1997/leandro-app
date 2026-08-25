@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#2563eb">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>Leandro App - Seguimiento Infantil v6.0</title>
+  <title>Leandro App - Seguimiento Infantil v7.0</title>
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="styles.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -33,10 +33,11 @@
       </div>
     </header>
 
-    <!-- NAVEGACIÓN PRINCIPAL -->
+    <!-- NAVEGACIÓN PRINCIPAL CON IA PEDIÁTRICA -->
     <nav class="nav-tabs">
       <button class="tab-btn active" data-tab="tab-quick">📝 Registro</button>
       <button class="tab-btn" data-tab="tab-timeline">📅 Día</button>
+      <button class="tab-btn" data-tab="tab-ai">🤖 IA Pediátrica</button>
       <button class="tab-btn" data-tab="tab-allergens">🥜 Alérgenos</button>
       <button class="tab-btn" data-tab="tab-tools">🛠️ Herramientas</button>
       <button class="tab-btn" data-tab="tab-growth">📏 Desarrollo</button>
@@ -46,8 +47,6 @@
     <main class="main-content">
       <!-- TAB 1: REGISTRO RÁPIDO & TEMPORIZADOR DE LACTANCIA -->
       <section id="tab-quick" class="tab-content active">
-        
-        <!-- WIDGET NUEVO v6.0: TEMPORIZADOR ACTIVO DE LACTANCIA POR PECHO -->
         <div class="nursing-card">
           <div class="nursing-header">
             <h3>🤱 Cronómetro de Lactancia</h3>
@@ -149,6 +148,24 @@
         </div>
       </section>
 
+      <!-- TAB NUEVO v7.0: IA PEDIÁTRICA -->
+      <section id="tab-ai" class="tab-content">
+        <div class="card">
+          <h3>🤖 Consultorio IA Pediátrico 24/7</h3>
+          <p class="text-sm text-muted">Responde dudas de nutrición, primeros auxilios o siestas usando el contexto en tiempo real de Leandro.</p>
+          
+          <div class="chat-container">
+            <div id="chat-messages" class="chat-messages">
+              <div class="chat-msg ai">👋 Hola, soy tu Asistente Pediátrico. Conozco la edad de Leandro y sus alérgenos introducidos. ¿En qué os puedo ayudar hoy?</div>
+            </div>
+            <div class="chat-input-row">
+              <input type="text" id="chat-input" placeholder="Pregunta algo (ej. Receta rápida con huevo y calabacín)...">
+              <button id="btn-send-chat" class="btn btn-primary" style="width:auto; padding:10px 14px;">Enviar</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <!-- TAB 3: DIARIO DE ALÉRGENOS -->
       <section id="tab-allergens" class="tab-content">
         <div class="card widget-card">
@@ -193,7 +210,6 @@
           <button class="tool-subtab-btn" data-subtab="tool-menu">🥦 Menú BLW</button>
         </div>
 
-        <!-- HERRAMIENTA 1: CALCULADORA DE TOMAS -->
         <div id="tool-bottle" class="tool-content active">
           <div class="card">
             <h3>🍼 Calculadora de Tomas y Biberones</h3>
@@ -227,7 +243,6 @@
           </div>
         </div>
 
-        <!-- HERRAMIENTA 2: QUIZ PRONTITUD -->
         <div id="tool-quiz" class="tool-content">
           <div class="card">
             <h3>🧪 Quiz: ¿Está listo para comer?</h3>
@@ -253,7 +268,6 @@
           </div>
         </div>
 
-        <!-- HERRAMIENTA 3: BUSCADOR BLW (200+ ALIMENTOS) -->
         <div id="tool-search" class="tool-content">
           <div class="card">
             <h3>🥑 Buscador de Alimentos BLW (200+ Alimentos)</h3>
@@ -277,7 +291,6 @@
           </div>
         </div>
 
-        <!-- HERRAMIENTA 4: GENERADOR DE MENÚ BLW MULTI-OPCIÓN -->
         <div id="tool-menu" class="tool-content">
           <div class="card">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
@@ -302,7 +315,7 @@
         </div>
       </section>
 
-      <!-- TAB 5: DESARROLLO Y PERCENTILES DE LA OMS (NUEVO v6.0) -->
+      <!-- TAB 5: DESARROLLO Y PERCENTILES -->
       <section id="tab-growth" class="tab-content">
         <div class="card">
           <h3>Antropometría y Percentiles OMS</h3>
@@ -323,7 +336,6 @@
             <button type="submit" class="btn btn-primary" style="margin-top:12px;">Guardar y Calcular Percentil</button>
           </form>
 
-          <!-- RESULTADO DE PERCENTILES OMS -->
           <div id="who-percentiles-box" style="display:none; margin-top:16px;">
             <h4 style="font-size:0.9rem; color:var(--text-muted);">📊 Curva de Crecimiento OMS (Resultado)</h4>
             <div class="percentile-results-grid">
