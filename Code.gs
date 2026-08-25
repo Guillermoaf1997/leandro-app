@@ -11,10 +11,11 @@ function doGet(e) {
       status: "success",
       records: parseSheetData(ss.getSheetByName("Registros")),
       growth: parseSheetData(ss.getSheetByName("Desarrollo")),
-      teeth: parseSheetData(ss.getSheetByName("Dientes"))
+      teeth: parseSheetData(ss.getSheetByName("Dientes")),
+      allergens: parseSheetData(ss.getSheetByName("Alergenos"))
     });
   }
-  return createJsonResponse({ status: "running", message: "API activa" });
+  return createJsonResponse({ status: "running", message: "API Leandro App v6.0 Activa" });
 }
 
 function doPost(e) {
@@ -30,11 +31,12 @@ function doPost(e) {
       const sheetReg = ss.getSheetByName("Registros");
       const sheetGrow = ss.getSheetByName("Desarrollo");
       const sheetTeeth = ss.getSheetByName("Dientes");
+      const sheetAllergens = ss.getSheetByName("Alergenos");
       
-      // 1. PROCESAR BORRADOS (Offline & Online)
+      // 1. PROCESAR BORRADOS
       if (data.deletedIds && data.deletedIds.length > 0) {
         const delSet = new Set(data.deletedIds);
-        [sheetReg, sheetGrow, sheetTeeth].forEach(sheet => {
+        [sheetReg, sheetGrow, sheetTeeth, sheetAllergens].forEach(sheet => {
           if (!sheet) return;
           const rows = sheet.getDataRange().getValues();
           for (let i = rows.length - 1; i >= 1; i--) {
@@ -45,32 +47,46 @@ function doPost(e) {
         });
       }
 
-      // 2. SINCRONIZACIÓN DE REGISTROS
+      // 2. SINCRONIZACIÓN DE REGISTROS (Deduplicación por UUID 'id')
       if(data.records && data.records.length > 0) {
-        const existingIds = new Set(parseSheetData(sheetReg).map(r => r.id));
+        const existingIds = new Set(parseSheetData(sheetReg).map(r => String(r.id)));
         data.records.forEach(r => {
-          if(!existingIds.has(r.id)) {
+          if(!existingIds.has(String(r.id))) {
             sheetReg.appendRow([r.id, r.timestamp, r.categoria, r.subtipo, r.valor, r.unidad, r.fechaInicio, r.fechaFin, r.notas || ""]);
+            existingIds.add(String(r.id));
           }
         });
       }
       
       // 3. SINCRONIZACIÓN DE DESARROLLO
       if(data.growth && data.growth.length > 0) {
-         const existingGrowthIds = new Set(parseSheetData(sheetGrow).map(g => g.id));
+         const existingGrowthIds = new Set(parseSheetData(sheetGrow).map(g => String(g.id)));
          data.growth.forEach(g => {
-           if(!existingGrowthIds.has(g.id)) {
+           if(!existingGrowthIds.has(String(g.id))) {
              sheetGrow.appendRow([g.id, g.timestamp, g.fecha, g.peso, g.talla, g.perimetro]);
+             existingGrowthIds.add(String(g.id));
            }
          });
       }
       
       // 4. SINCRONIZACIÓN DE DENTICIÓN
       if(data.teeth && data.teeth.length > 0) {
-         const existingTeethIds = new Set(parseSheetData(sheetTeeth).map(t => t.id));
+         const existingTeethIds = new Set(parseSheetData(sheetTeeth).map(t => String(t.id)));
          data.teeth.forEach(t => {
-           if(!existingTeethIds.has(t.id)) {
+           if(!existingTeethIds.has(String(t.id))) {
              sheetTeeth.appendRow([t.id, t.timestamp, t.tooth, t.erupted, t.fecha]);
+             existingTeethIds.add(String(t.id));
+           }
+         });
+      }
+
+      // 5. SINCRONIZACIÓN DE ALÉRGENOS
+      if(data.allergens && data.allergens.length > 0) {
+         const existingAllergenIds = new Set(parseSheetData(sheetAllergens).map(a => String(a.id)));
+         data.allergens.forEach(a => {
+           if(!existingAllergenIds.has(String(a.id))) {
+             sheetAllergens.appendRow([a.id, a.timestamp, a.allergenKey, a.status, a.dayCount, a.notes || "", a.fecha]);
+             existingAllergenIds.add(String(a.id));
            }
          });
       }
@@ -100,6 +116,11 @@ function ensureSheetsExist(ss) {
     const sheet = ss.insertSheet("Dientes");
     sheet.appendRow(["ID", "Timestamp", "Tooth", "Erupted", "Fecha"]);
     sheet.getRange("A:E").setNumberFormat("@");
+  }
+  if (!ss.getSheetByName("Alergenos")) {
+    const sheet = ss.insertSheet("Alergenos");
+    sheet.appendRow(["ID", "Timestamp", "AllergenKey", "Status", "DayCount", "Notes", "Fecha"]);
+    sheet.getRange("A:G").setNumberFormat("@");
   }
 }
 
@@ -131,6 +152,11 @@ function parseSheetData(sheet) {
       
       if (header === "Tooth") key = "tooth";
       if (header === "Erupted") key = "erupted";
+
+      if (header === "AllergenKey") key = "allergenKey";
+      if (header === "Status") key = "status";
+      if (header === "DayCount") key = "dayCount";
+      if (header === "Notes") key = "notes";
 
       obj[key] = row[index] !== undefined ? row[index] : "";
     });
