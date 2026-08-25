@@ -1,5 +1,6 @@
-// Configuración de la hoja de cálculo
+// Configuración de la hoja de cálculo y API Key
 const TIMEZONE = "Europe/Madrid";
+const GEMINI_API_KEY = "PESTA_AQUI_TU_NUEVA_CLAVE_GEMINI";
 
 function doGet(e) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -15,7 +16,7 @@ function doGet(e) {
       allergens: parseSheetData(ss.getSheetByName("Alergenos"))
     });
   }
-  return createJsonResponse({ status: "running", message: "API Leandro App v6.0 Activa" });
+  return createJsonResponse({ status: "running", message: "API Leandro App v7.0 Activa" });
 }
 
 function doPost(e) {
@@ -27,6 +28,13 @@ function doPost(e) {
     const action = contents.action;
     const data = contents.data;
 
+    // CONSULTA A IA PEDIÁTRICA (GEMINI API)
+    if (action === "askGemini") {
+      const replyText = callGeminiAPI(data.prompt, data.babyContext);
+      return createJsonResponse({ status: "success", reply: replyText });
+    }
+
+    // SINCRONIZACIÓN GENERAL
     if (action === "sync") {
       const sheetReg = ss.getSheetByName("Registros");
       const sheetGrow = ss.getSheetByName("Desarrollo");
@@ -47,7 +55,7 @@ function doPost(e) {
         });
       }
 
-      // 2. SINCRONIZACIÓN DE REGISTROS (Deduplicación por UUID 'id')
+      // 2. REGISTROS (Deduplicación por UUID)
       if(data.records && data.records.length > 0) {
         const existingIds = new Set(parseSheetData(sheetReg).map(r => String(r.id)));
         data.records.forEach(r => {
@@ -58,7 +66,7 @@ function doPost(e) {
         });
       }
       
-      // 3. SINCRONIZACIÓN DE DESARROLLO
+      // 3. DESARROLLO
       if(data.growth && data.growth.length > 0) {
          const existingGrowthIds = new Set(parseSheetData(sheetGrow).map(g => String(g.id)));
          data.growth.forEach(g => {
@@ -69,7 +77,7 @@ function doPost(e) {
          });
       }
       
-      // 4. SINCRONIZACIÓN DE DENTICIÓN
+      // 4. DENTICIÓN
       if(data.teeth && data.teeth.length > 0) {
          const existingTeethIds = new Set(parseSheetData(sheetTeeth).map(t => String(t.id)));
          data.teeth.forEach(t => {
@@ -80,7 +88,7 @@ function doPost(e) {
          });
       }
 
-      // 5. SINCRONIZACIÓN DE ALÉRGENOS
+      // 5. ALÉRGENOS
       if(data.allergens && data.allergens.length > 0) {
          const existingAllergenIds = new Set(parseSheetData(sheetAllergens).map(a => String(a.id)));
          data.allergens.forEach(a => {
@@ -98,6 +106,53 @@ function doPost(e) {
 
   } catch (error) {
     return createJsonResponse({ status: "error", message: error.toString() });
+  }
+}
+
+function callGeminiAPI(promptText, babyContext) {
+  if (!GEMINI_API_KEY || GEMINI_API_KEY.includes("PESTA_AQUI")) {
+    return "⚠️ Configura tu API Key de Gemini en Code.gs para activar el Asistente Pediátrico.";
+  }
+
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+  
+  const systemPrompt = `Eres "Pediatra-IA", consultor de alto nivel en salud infantil, BLW y sueño de Leandro App. Tu conocimiento se basa en OMS, AEP y ESPGHAN.
+
+CONTEXTO ACTUAL DE LEANDRO:
+- Edad: ${babyContext.ageMonths || 0} meses
+- Alérgenos introducidos: ${babyContext.allergensOk || "Ninguno aún"}
+- Alérgenos con reacción: ${babyContext.allergensNok || "Ninguno"}
+
+PROTOCOLOS ESTRICTOS:
+1. BANDERAS ROJAS (Urgencia): Si hay síntomas graves (dificultad respiratoria, convulsiones, anafilaxia, letargia, fiebre en <3m), responde INMEDIATAMENTE: "🚨 AVISO DE EMERGENCIA: Llama al 112 o acude a Urgencias de inmediato." y da pautas de triaje.
+2. ALIMENTACIÓN SEGURA: Prohibidos Miel (<12m), frutos secos enteros, uvas/cherrys enteros, manzana/zanahoria crudas. Sin sal/azúcar.
+3. ESTILO: Conciso, empático, en viñetas y directo al grano. Máximo 3 párrafos breves.`;
+
+  const payload = {
+    contents: [
+      {
+        role: "user",
+        parts: [{ text: `${systemPrompt}\n\nConsulta del padre/madre: ${promptText}` }]
+      }
+    ]
+  };
+
+  const options = {
+    method: "post",
+    contentType: "application/json",
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  };
+
+  try {
+    const res = UrlFetchApp.fetch(endpoint, options);
+    const json = JSON.parse(res.getContentText());
+    if (json.candidates && json.candidates[0].content.parts[0].text) {
+      return json.candidates[0].content.parts[0].text;
+    }
+    return "No se pudo obtener respuesta del Asistente Pediátrico.";
+  } catch (e) {
+    return "Error de conexión con Gemini API: " + e.toString();
   }
 }
 
